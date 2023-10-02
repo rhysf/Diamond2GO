@@ -1,0 +1,2 @@
+*.dmnd filter=lfs diff=lfs merge=lfs -text
+*.obo filter=lfs diff=lfs merge=lfs -text
