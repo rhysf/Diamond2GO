@@ -16,11 +16,15 @@ Optional: -d\tDatabase [$Bin/resources/nr_clean_d2go.dmnd]
           -n\tSensitivity (default, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive)
           -t\tQuery Type (protein/dna) [protein]
           -m\tMax target sequences [1]\n
+Outfile:  -a\tDiamond outfile [query.fasta-diamond.out]
+          -b\tDiamond outfile parsed [query.fasta-diamond.out.processed]
 Notes: 1) Diamond needs to be in PATH
        2) Database needs to be made with diamond (E.g. diamond makedb --in <nr.faa> -d nr)\n";
-our($opt_d, $opt_e, $opt_m, $opt_n, $opt_q, $opt_s, $opt_t);
-getopt('demnqst');
+our($opt_a, $opt_b, $opt_d, $opt_e, $opt_m, $opt_n, $opt_q, $opt_s, $opt_t);
+getopt('abdemnqst');
 die $usage unless ($opt_q);
+if(!defined $opt_a) { $opt_a = "$opt_q-diamond.out"; }
+if(!defined $opt_b) { $opt_b = "$opt_q-diamond.out.processed"; }
 if(!defined $opt_d) { $opt_d = "$Bin/resources/nr_clean_d2go.dmnd"; }
 if(!defined $opt_m) { $opt_m = 1; }
 if(!defined $opt_n) { $opt_n = "default"; }
@@ -43,14 +47,13 @@ if(($opt_n eq 'mid-sensitive') || ($opt_n eq 'sensitive') || ($opt_n eq 'more-se
 }
 
 # run diamond (this could be scatter gathered)
-my $out_diamond = "$opt_q-diamond.out";
 if($opt_s =~ m/1/) {
 
        #my $blast_cmd = "blastp -query $opt_q -db nr -remote -out $out_blast";
-       #my $diamond_cmd = "diamond blastp -d $opt_d -q $opt_q -o $out_diamond -f 6";
+       #my $diamond_cmd = "diamond blastp -d $opt_d -q $opt_q -o $opt_a -f 6";
 
        # Query Seq ID, Subject Seq ID, Subject Title/Desc, E-value 
-       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $out_diamond $sensitivity_flag --max-target-seqs $opt_m -f 6 qseqid sseqid stitle evalue";
+       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $opt_a $sensitivity_flag --max-target-seqs $opt_m -f 6 qseqid sseqid stitle evalue";
        warn "cmd: $diamond_cmd\n";
        my $run_blast = `$diamond_cmd`;
 }
@@ -58,11 +61,10 @@ if($opt_s =~ m/1/) {
 if($opt_s =~ m/2/) {
 
        # save all diamond hits
-       my $out_diamond_processed = "$opt_q-diamond.out.processed";
-       my $gene_to_go_to_evalue_to_info = &save_all_diamond_hits_from_file($out_diamond, $opt_e);
+       my $gene_to_go_to_evalue_to_info = &save_all_diamond_hits_from_file($opt_a, $opt_e);
 
        # print best e-value score go-terms
-       &print_non_redundant_and_best_scoring_go_terms($gene_to_go_to_evalue_to_info, $out_diamond_processed);
+       &print_non_redundant_and_best_scoring_go_terms($gene_to_go_to_evalue_to_info, $opt_b);
 }
 
 sub print_non_redundant_and_best_scoring_go_terms {
