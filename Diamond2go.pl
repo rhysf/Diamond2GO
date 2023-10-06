@@ -15,7 +15,7 @@ my $usage = "perl $0 -q <query.fasta>\n
 Optional: -d\tDatabase [$Bin/resources/nr_clean_d2go.dmnd]
           -s\tSteps (1=Diamond, 2=summarise GO terms, 3=prepare query for interproscan, 4=run interproscan and combine results) [12]
           -e\tE-value cutoff [1e-10]
-          -n\tSensitivity (default, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive)
+          -n\tSensitivity (default, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive) [ultra-sensitive]
           -t\tQuery Type (protein/dna) [protein]
           -m\tMax target sequences [1]
           -i\tUse interproscan (h=all genes with no d2go hits, a=all) [h]
@@ -34,7 +34,7 @@ if(!defined $opt_c) { $opt_c = "$opt_q-diamond.processed_with_interpro.tab"; }
 if(!defined $opt_d) { $opt_d = "$Bin/resources/nr_clean_d2go.dmnd"; }
 if(!defined $opt_i) { $opt_i = 'h'; }
 if(!defined $opt_m) { $opt_m = 1; }
-if(!defined $opt_n) { $opt_n = "default"; }
+if(!defined $opt_n) { $opt_n = "ultra-sensitive"; }
 if(!defined $opt_s) { $opt_s = '12'; }
 if(!defined $opt_t) { $opt_t = 'protein'; }
 if(!defined $opt_e) { $opt_e = '1e-10'; }

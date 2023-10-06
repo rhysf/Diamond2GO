@@ -19,28 +19,35 @@ my ($d2go, $d2go_lines) = &save_d2go($d2go_processed);
 print "#gene_id\tgene_name\tspecies\te-value\tGO-term\tevidence_code\tqualifier\tcategory\n";
 
 # d2go hits
-foreach my $gene(sort keys %{$d2go}) {
+GENE: foreach my $gene(sort keys %{$d2go}) {
 
-	if(!defined $$interpro_gene_to_go{$gene}) {
-		print "$$d2go_lines{$gene}\n";
-	} else {
-		die "error: i haven't coded this yet... if gene is found by both interpro and d2go - need to check that new go terms are being assigned\n";
+	# print d2go entries
+	print "$$d2go_lines{$gene}";
+
+	# Go through all d2go entries for this gene
+	next if(!defined $$interpro_gene_to_go{$gene});
+
+	# Only add go-terms not already assigned
+	foreach my $interpro_go_term(sort keys %{$$interpro_gene_to_go{$gene}{'go'}}) {
+		next if(defined $$d2go{$gene}{$interpro_go_term});
+
+		my $name = $$interpro_gene_to_go{$gene}{'name'};
+		print "$gene\t$name\tInterpro-NA\tInterpro-NA\t$interpro_go_term\tInterpro-NA\tInterpro-NA\tInterpro-NA\n";
+		#warn "Adding $interpro_go_term\n";
 	}
+	print "\n";
 }
 
-# interpro hits
+# interpro hits that have no d2go genes
 foreach my $gene(sort keys %{$interpro_gene_to_go}) {
-	if(!defined $$d2go{$gene}) {
-		# $gene_to_GO_terms{$gene}{'go'}{$go_ind} = 1;
-		# $gene_to_GO_terms{$gene}{'name'} = $name;
+	next if(defined $$d2go{$gene});
 
-		foreach my $go(sort keys %{$$interpro_gene_to_go{$gene}{'go'}}) {
-			my $name = $$interpro_gene_to_go{$gene}{'name'};
-			print "$gene\t$name\tInterpro-NA\tInterpro-NA\t$go\tInterpro-NA\tInterpro-NA\tInterpro-NA\n";
-		}
-	} 
-	else {
-		die "error 2: i haven't coded this yet... if gene is found by both interpro and d2go - need to check that new go terms are being assigned\n";
+	# $gene_to_GO_terms{$gene}{'go'}{$go_ind} = 1;
+	# $gene_to_GO_terms{$gene}{'name'} = $name;
+
+	foreach my $go(sort keys %{$$interpro_gene_to_go{$gene}{'go'}}) {
+		my $name = $$interpro_gene_to_go{$gene}{'name'};
+		print "$gene\t$name\tInterpro-NA\tInterpro-NA\t$go\tInterpro-NA\tInterpro-NA\tInterpro-NA\n";
 	}
 	print "\n";
 }
@@ -93,7 +100,7 @@ sub save_d2go {
 
 sub save_interpro_gene_to_go_summary {
 	my $file = $_[0];
-	warn "save_interpro_gene_to_go_summary  : $file\n";
+	warn "save_interpro_gene_to_go_summary : $file\n";
 	my %gene_to_GO_terms;
 	my $go_count = 0;
 	open my $fh, '<', $file or die "Error: Cannot open $file : $!";
