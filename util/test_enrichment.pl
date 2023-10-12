@@ -19,7 +19,7 @@ Optional: -o\tgo-basic.obo [$Bin/../resources/go-basic.obo]
           -r\tConduct a right-tailed Fisher test instead of two-tailed (y/n) [n]
 	  -z\tInclude gene entries in output (y/n) [n]\n";
 our($opt_a, $opt_b, $opt_f, $opt_o, $opt_p, $opt_q, $opt_r, $opt_z);
-getopt('abfopqr');
+getopt('abfopqrz');
 die $usage unless ($opt_a && $opt_b);
 if(!defined $opt_o) { $opt_o = "$Bin/../resources/go-basic.obo"; }
 if(!defined $opt_p) { $opt_p = "$opt_b.enrichments"; }
