@@ -9,6 +9,7 @@ enrichment for functional genomics.
 Prerequisites:
 --------------
 
+Git Large File Storage (LFS) (https://git-lfs.com/)
 Perl
 BioPerl
 CPAN modules Getopt::Std and Scalar::Util

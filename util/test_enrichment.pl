@@ -5,9 +5,9 @@ use lib "$Bin/../modules";
 use read_Tab;
 use Getopt::Std;
 use Statistics::Multtest qw(BH qvalue);
-use Stats::WilsonInterval;
-use Stats::RightFisher;
-use Stats::TwoFisher;
+use Statistics::WilsonInterval;
+use Statistics::RightFisher;
+use Statistics::TwoFisher;
 
 ### rfarrer@broadinstitute.org
 
@@ -16,14 +16,16 @@ my $usage = "Usage: perl $0 -a <d2go_out.processed> -b <subset.list>\n
 Optional: -o\tgo-basic.obo [$Bin/../resources/go-basic.obo]
           -p\tOutput file [opt_b.enrichments]
           -q\tOutput file parsed for significant GO terms without significant child GO terms [opt_b.enrichments.parsed]
-          -r\tConduct a right-tailed Fisher test instead of two-tailed (y/n) [n]\n";
-our($opt_a, $opt_b, $opt_f, $opt_o, $opt_p, $opt_q, $opt_r);
+          -r\tConduct a right-tailed Fisher test instead of two-tailed (y/n) [n]
+	  -z\tInclude gene entries in output (y/n) [n]\n";
+our($opt_a, $opt_b, $opt_f, $opt_o, $opt_p, $opt_q, $opt_r, $opt_z);
 getopt('abfopqr');
 die $usage unless ($opt_a && $opt_b);
 if(!defined $opt_o) { $opt_o = "$Bin/../resources/go-basic.obo"; }
 if(!defined $opt_p) { $opt_p = "$opt_b.enrichments"; }
 if(!defined $opt_q) { $opt_q = "$opt_b.enrichments.parsed"; }
 if(!defined $opt_r) { $opt_r = 'n'; }
+if(!defined $opt_z) { $opt_z = 'n'; }
 foreach my $file($opt_a, $opt_b, $opt_o) { die "Error: file $file cannot be opened : $!" if(! -e $file); }
 
 # Check opt_a looks correct
@@ -103,7 +105,8 @@ my %qs = %$res;
 
 # Print Results
 open my $ofh, '>', $opt_p or die "Error: cannot open $opt_p : $!";
-print $ofh "GO term\tsp1 count\tsp2 count\tfisher p\tq value\trel prop\tsig\tGO desc\tgenes1\tgenes2\n";
+if($opt_z eq 'y') { print $ofh "GO term\tsp1 count\tsp2 count\tfisher p\tq value\trel prop\tsig\tGO desc\tgenes1\tgenes2\n"; }
+else { print $ofh "GO term\tsp1 count\tsp2 count\tfisher p\tq value\trel prop\tsig\tGO desc\n"; }
 foreach my $go_term (@diff_go_terms) {
 	my $genes1 = '';
 	my $genes2 = '';
@@ -115,7 +118,9 @@ foreach my $go_term (@diff_go_terms) {
 	print $ofh "$go_term\t$$go_counts1{$go_term}\t$$go_counts2{$go_term}\t$fisher_ps{$go_term}\t$qs{$go_term}\t$rel_prop\t";
 	#print "$npp,$np1,$n11,$n1p\t";
 	if ($qs{$go_term} < 0.05) { print $ofh "*"; }
-	print $ofh "\t$$go_desc{$go_term}\t$genes1\t$genes2\n";
+	print $ofh "\t$$go_desc{$go_term}";
+	if($opt_z eq 'y') { print $ofh "\t$genes1\t$genes2\n"; }
+	else { print "\n"; }
 }
 close $ofh;
 
