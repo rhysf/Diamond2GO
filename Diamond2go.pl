@@ -54,6 +54,10 @@ if(($opt_n eq 'mid-sensitive') || ($opt_n eq 'sensitive') || ($opt_n eq 'more-se
        $sensitivity_flag = "--$opt_n";
 }
 
+# Check database has been downloaded or is correct
+my $first_line = `head -1 $opt_d`;
+die "Error: $opt_d not correctly specified. Looks like you need to first install Git Large File Storage (LFS) (https://git-lfs.com/) - and then re-clone\n" if($first_line =~ m/^version\ https:\/\/git-lfs/);
+
 # run diamond (this could be scatter gathered)
 if($opt_s =~ m/1/) {
 
