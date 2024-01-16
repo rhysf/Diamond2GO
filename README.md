@@ -63,12 +63,26 @@ The following CPAN modules are required for InterPro (if used):
 
 D2GO comes with a default database that was prepared on <strong>14th May 2023</strong>strong>. If this is sufficiently dated, or a new database is required for any reason, these steps should be sufficient to recreate or update the default database
 
-1. NCBI non-redundant database was downloaded on the 14th May 2023 using the command ``wget --continue https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz``
-2. Non printable ASCII characters were removed using the command ``tr -cd '\11\12\15\40-\176' < nr.faa > nr_clean.faa``
+1. NCBI non-redundant database was downloaded on the 14th May 2023 using the command 
+
+``wget --continue https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz``
+
+2. Non printable ASCII characters were removed using the command 
+
+``tr -cd '\11\12\15\40-\176' < nr.faa > nr_clean.faa``
+
 3. NCBI gene2accession and gene2go were downloaded on the 20th July 2023 from https://ftp.ncbi.nih.gov/gene/DATA/
-4. Merge the GO and gene accessions using the command ``perl ncbi_gene2go_merge.pl -a gene2go -b gene2accession > gene2go_and_accessions_merged.tab``
-5. Add GO terms to the NCBI nr database using the command ``perl blast_database_to_new_description.pl -d nr_clean.faa -a gene2go_and_accessions_merged.tab > nr_clean_d2go.faa``
-6. Make diamond database using the command ``diamond makedb --in nr_clean_d2go.faa -d nr_clean_d2go.faa.dmnd``
+4. Merge the GO and gene accessions using the command 
+
+``perl ncbi_gene2go_merge.pl -a gene2go -b gene2accession > gene2go_and_accessions_merged.tab``
+
+5. Add GO terms to the NCBI nr database using the command 
+
+``perl blast_database_to_new_description.pl -d nr_clean.faa -a gene2go_and_accessions_merged.tab > nr_clean_d2go.faa``
+
+6. Make diamond database using the command 
+
+``diamond makedb --in nr_clean_d2go.faa -d nr_clean_d2go.faa.dmnd``
 
 ## Utility scripts
 
