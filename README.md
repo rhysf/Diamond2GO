@@ -35,6 +35,7 @@ The following CPAN modules are required for InterPro (if used):
 LWP
 XML::Simple
 Time::HiRes
+List::AllUtils.pm
 
 ## Getting started / examples
 
@@ -71,11 +72,28 @@ D2GO comes with a default database that was prepared on <strong>14th May 2023</s
 
 ## Utility scripts
 
-A brief description of the utility scripts
+A brief description of the utility scripts, that can be used to create a new database, are dependencies of other tools or allow enrichment tests.
 
-*blast_database_to_new_description.pl : Used in database construction
-*iprscan5_RF.pl : Used for InterPro scan
-*iprscan_summary_and_d2go_processed_combine.pl : Used as part of the InterPro steps
-*iprscan_tsv_to_GO_summary.pl : Used as part of the InterPro steps
-*ncbi_gene2go_merge.pl : Used in database construction
-*test_enrichment.pl : Should be used separately to perform functional enrichment. Note: q-value calculation can be slow on large datasets.
+* blast_database_to_new_description.pl : Used in database construction. Note: nr.faa is a fasta file of the NCBI non-redundant database or other database. gene2go_and_accessions_merged.tab is a tab delimited file output from made from ncbi_gene2go_merge_gene2accession.pl
+
+``perl /util/blast_database_to_new_description.pl -d nr.faa -a gene2go_and_accessions_merged.tab > new_nr.faa``
+
+* iprscan5_RF.pl : Used for InterPro scan
+
+``perl /util/iprscan5_RF.pl --asyncjob --email <your@email.com> [options...] <SeqFile|SeqID(s)>``
+
+* iprscan_summary_and_d2go_processed_combine.pl : Used as part of the InterPro steps. iprscan_all_results.parsed is the output from iprscan_tsv_to_GO_summary.pl
+
+``perl /util/iprscan_summary_and_d2go_processed_combine.pl iprscan_all_results.parsed output.processed > output.processed2``
+
+* iprscan_tsv_to_GO_summary.pl : Used as part of the InterPro steps
+
+``perl /util/iprscan_tsv_to_GO_summary.pl iprscan.tsv.tsv> > gene_to_go.tab``
+
+* ncbi_gene2go_merge.pl : Used in database construction
+
+``perl /util/ncbi_gene2go_merge.pl -a gene2go -b gene2accession > gene2info``
+
+* test_enrichment.pl : Used to calculate functional enrichment. Note: q-value calculation can be slow on large datasets. d2go_out.processed in an outfile of d2go.pl and subset.list is a text file or id's of interest (i.e., a subset of the ids for the sequences in d2go_out.processed). Note: there are other parameters that may be useful when running this script.
+
+``perl /util/test_enrichment.pl -a d2go_out.processed -b subset.list``
