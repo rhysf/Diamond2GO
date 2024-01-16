@@ -22,20 +22,20 @@ For issues, questions, comments or geature requests, please check or post to the
 
 ## Prerequisites
 
-Git Large File Storage (LFS) (LFS is used to store the default database. Ensure this is pre-installed from https://git-lfs.com/)
-Perl
-BioPerl
-CPAN modules Getopt::Std and Scalar::Util
-Diamond (in $PATH)
+* Git Large File Storage (LFS) (LFS is used to store the default database. Ensure this is pre-installed from https://git-lfs.com/)
+* Perl
+* BioPerl
+* CPAN modules Getopt::Std and Scalar::Util
+* Diamond (in $PATH)
 
 ## InterPro prerequisites
 
 The following CPAN modules are required for InterPro (if used):
 
-LWP
-XML::Simple
-Time::HiRes
-List::AllUtils.pm
+* LWP
+* XML::Simple
+* Time::HiRes
+* List::AllUtils
 
 ## Getting started / examples
 
