@@ -1,5 +1,5 @@
 
-<img src="https://github.com/rhysf/Diamond2GO/tree/main/resources/logo.jpg" alt=D2GO" style="height: 200px; width: 200px;"/>
+![D2GO](https://github.com/rhysf/Diamond2GO/tree/main/resources/logo.jpg "D2GO")
 
 ## Introduction
 
