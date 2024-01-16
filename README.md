@@ -1,5 +1,5 @@
 
-![D2GO](https://github.com/rhysf/Diamond2GO/tree/main/resources/logo.jpg "D2GO")
+![D2GO](https://github.com/rhysf/Diamond2GO/tree/main/resources/logo.jpg)
 
 ## Introduction
 
