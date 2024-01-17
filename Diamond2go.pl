@@ -42,7 +42,7 @@ die "Cannot open $opt_q : $!" unless (-e $opt_q);
 die "Cannot open $opt_d : $!" unless (-e $opt_d);
 die "Error: -e not numeric : $opt_e\n" if(! looks_like_number($opt_e));
 die "Error -t not protein or dna: $opt_t\n" if($opt_t !~ m/(dna)|(protein)/);
-die "Error: -a not h or a: $opt_i\n" if($opt_i !~ m/h|n/);
+die "Error: -a not h or a: $opt_i\n" if($opt_i !~ m/h|a/);
 
 # program
 my $program = 'blastp';

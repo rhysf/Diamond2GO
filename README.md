@@ -36,6 +36,7 @@ The following CPAN modules are required for InterPro (if used):
 * XML::Simple
 * Time::HiRes
 * List::AllUtils
+* LWP::Protocol::https
 
 ## Getting started / examples
 
