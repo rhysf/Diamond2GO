@@ -17,8 +17,7 @@ All documentation for Diamond2GO can be found at https://github.com/rhysf/Diamon
 
 ## Support
 
-For issues, questions, comments or geature requests, please check or post to the issues tab on github: https://github.com/rhysf/Diamond2GO/issues
-
+For issues, questions, comments or feature requests, please check or post to the issues tab on github: https://github.com/rhysf/Diamond2GO/issues
 
 ## Prerequisites
 
@@ -32,11 +31,12 @@ For issues, questions, comments or geature requests, please check or post to the
 
 The following CPAN modules are required for InterPro (if used):
 
-* LWP
-* XML::Simple
-* Time::HiRes
 * List::AllUtils
+* LWP
 * LWP::Protocol::https
+* Mozilla::CA
+* Time::HiRes
+* XML::Simple
 
 ## Getting started / examples
 
