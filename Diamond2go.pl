@@ -11,7 +11,6 @@ use Scalar::Util qw(looks_like_number);
 ### r.farrer@exeter.ac.uk
 
 # usage
-&usage_count();
 my $usage = "perl $0 -q <query.fasta>\n
 Optional: -d\tDatabase [$Bin/resources/nr_clean_d2go.dmnd]
           -s\tSteps (1=Diamond, 2=summarise GO terms, 3=prepare query for interproscan, 4=run interproscan and combine results) [12]
@@ -59,8 +58,8 @@ if(($opt_n eq 'mid-sensitive') || ($opt_n eq 'sensitive') || ($opt_n eq 'more-se
 my $first_line = `head -1 $opt_d`;
 die "Error: $opt_d not correctly specified. Looks like you need to first install Git Large File Storage (LFS) (https://git-lfs.com/) - and then re-clone\n" if($first_line =~ m/^version\ https:\/\/git-lfs/);
 
-
 # run diamond (this could be scatter gathered)
+&usage_count();
 if($opt_s =~ m/1/) {
 
        warn "D2GO step 1...\n";
