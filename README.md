@@ -62,7 +62,7 @@ The following CPAN modules are required for InterPro (if used):
 
 ## Description of default database and details of how to create a new database
 
-D2GO comes with a default database that was prepared on <strong>14th May 2023</strong>strong>. If this is sufficiently dated, or a new database is required for any reason, these steps should be sufficient to recreate or update the default database
+D2GO comes with a default database that was prepared on <strong>14th May 2023</strong>strong>. If this is sufficiently dated, or a new database is required for any reason, these steps should be sufficient to recreate or update the default database. There is also a new wrapper script that attempts to run all commands: make_new_database.sh. 
 
 1. NCBI non-redundant database was downloaded on the 14th May 2023 using the command 
 
@@ -112,3 +112,7 @@ A brief description of the utility scripts, that can be used to create a new dat
 * test_enrichment.pl : Used to calculate functional enrichment. Note: q-value calculation can be slow on large datasets. d2go_out.processed in an outfile of d2go.pl and subset.list is a text file or id's of interest (i.e., a subset of the ids for the sequences in d2go_out.processed). Note: there are other parameters that may be useful when running this script.
 
 ``perl /util/test_enrichment.pl -a d2go_out.processed -b subset.list``
+
+## Updates
+
+* 8th July 2025. Uploaed a new wrapper script that attempts to run all commands to make a new d2go database file from scratch: make_new_database.sh

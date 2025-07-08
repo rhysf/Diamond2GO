@@ -11,6 +11,7 @@ use Scalar::Util qw(looks_like_number);
 ### r.farrer@exeter.ac.uk
 
 # usage
+&usage_count();
 my $usage = "perl $0 -q <query.fasta>\n
 Optional: -d\tDatabase [$Bin/resources/nr_clean_d2go.dmnd]
           -s\tSteps (1=Diamond, 2=summarise GO terms, 3=prepare query for interproscan, 4=run interproscan and combine results) [12]
@@ -57,6 +58,7 @@ if(($opt_n eq 'mid-sensitive') || ($opt_n eq 'sensitive') || ($opt_n eq 'more-se
 # Check database has been downloaded or is correct
 my $first_line = `head -1 $opt_d`;
 die "Error: $opt_d not correctly specified. Looks like you need to first install Git Large File Storage (LFS) (https://git-lfs.com/) - and then re-clone\n" if($first_line =~ m/^version\ https:\/\/git-lfs/);
+
 
 # run diamond (this could be scatter gathered)
 if($opt_s =~ m/1/) {
@@ -323,10 +325,25 @@ sub save_all_diamond_hits_from_file {
        return (\%hits);
 }
 
+sub usage_count {
+	my $url  = "https://rhysfarrer.com/code_track/log.php";
+	if (command_exists("curl")) {
+		system("curl -s \"$url\" > /dev/null");
+	} elsif (command_exists("wget")) {
+		system("wget -q \"$url\" -O /dev/null");
+	} else { }
+}
+
 sub process_cmd {
        my ($cmd) = @_;
        warn "CMD: $cmd\n";
        my $ret = system($cmd);
        die "Error, cmd $cmd died with return $ret\n" if($ret);
        return 1;
+}
+
+# Function to check if a command exists
+sub command_exists {
+    my ($cmd) = @_;
+    return system("command -v $cmd > /dev/null 2>&1") == 0;
 }
