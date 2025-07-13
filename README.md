@@ -23,8 +23,6 @@ For issues, questions, comments or feature requests, please check or post to the
 
 ## Running with Docker (Recommended)
 
-To simplify setup and ensure compatibility, we provide a Docker environment.
-
 ```bash
 docker buildx build --platform linux/amd64 -t diamond2go .
 
