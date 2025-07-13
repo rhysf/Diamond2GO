@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  diamond2go:
+    build:
+      context: .
+      platform: linux/amd64
+    image: diamond2go
+    container_name: diamond2go
+    volumes:
+      - .:/data
+    working_dir: /data
+    entrypoint: ["perl", "Diamond2go.pl"]
