@@ -25,8 +25,6 @@ For issues, questions, comments or feature requests, please check or post to the
 
 To simplify setup and ensure compatibility, we provide a Docker environment.
 
-### Build the image
-
 ```bash
 docker buildx build --platform linux/amd64 -t diamond2go .
 
@@ -56,10 +54,6 @@ If using InterPro mode:
 
 * Assign GO terms to protein fasta
 
-``docker run --rm -v $(pwd):/data -w /data diamond2go -d ./resources/nr_clean_d2go.dmnd -q ./data/query.fasta -t protein``
-
-or:
-
 ``perl Diamond2go.pl -d nr_clean_d2go.dmnd -q query.fasta -t protein``
 
 * Assign GO terms to gene fasta 
@@ -80,7 +74,8 @@ or:
 
 ## Default Database Description
 
-D2GO comes with a default database that was prepared on <strong>14th May 2023</strong>strong>. If this is sufficiently dated, or a new database is required for any reason, these steps should be sufficient to recreate or update the default database. There is also a new wrapper script that attempts to run all commands: make_new_database.sh. To recreate the default reference database:
+D2GO comes with a default database that was prepared on <strong>14th May 2023</strong>. 
+If this is sufficiently dated, or a new database is required for any reason, these steps should be sufficient to recreate or update the default database. There is also a new wrapper script that attempts to run all commands: make_new_database.sh. To recreate the default reference database:
 
 ``
 wget --continue https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz
@@ -105,6 +100,9 @@ diamond makedb --in nr_clean_d2go.faa -d nr_clean_d2go.faa.dmnd
 
 * test_enrichment.pl — perform GO enrichment tests
 
+* make_new_database.sh — make new D2GO database
+
 ## Updates
 
+* 13th July 2025. Support for Docker included.
 * 8th July 2025. Uploaed a new wrapper script that attempts to run all commands to make a new d2go database file from scratch: make_new_database.sh

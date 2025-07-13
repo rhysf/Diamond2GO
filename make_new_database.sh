@@ -1,28 +1,35 @@
 #!/bin/bash
 
 # r.farrer@exeter.ac.uk
+# Automated script to generate a new DIAMOND2GO database with date-stamped output
 
-CMD1="wget --continue https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz -O ./resources/nr.gz"
-CMD2="gunzip ./resources/nr.gz"
-CMD3="tr -cd '\11\12\15\40-\176' < ./resources/nr.faa > ./resources/nr_clean.faa"
-CMD4="perl util/ncbi_gene2go_merge.pl -a gene2go -b gene2accession > gene2go_and_accessions_merged.tab"
-CMD5="perl util/blast_database_to_new_description.pl -d nr_clean.faa -a gene2go_and_accessions_merged.tab > nr_clean_d2go.faa"
-CMD6="diamond makedb --in nr_clean_d2go.faa -d nr_clean_d2go.faa.dmnd"
+set -e  # exit on error
 
-echo "CMD1: $CMD1"
-eval $CMD1
+DATE=$(date +%Y%m%d)
+RESOURCES_DIR="./resources"
+DB_BASENAME="nr_clean_d2go_${DATE}"
 
-echo "CMD2: $CMD2"
-eval $CMD2
+mkdir -p "$RESOURCES_DIR"
 
-echo "CMD3: $CMD3"
-eval $CMD3
+echo "[1/6] Downloading NCBI nr.gz..."
+wget --continue https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz -O "${RESOURCES_DIR}/nr.gz"
 
-echo "CMD4: $CMD4"
-eval $CMD4
+echo "[2/6] Decompressing..."
+gunzip -f "${RESOURCES_DIR}/nr.gz"
 
-echo "CMD5: $CMD5"
-eval $CMD5
+echo "[3/6] Cleaning ASCII..."
+tr -cd '\11\12\15\40-\176' < "${RESOURCES_DIR}/nr" > "${RESOURCES_DIR}/nr_clean.faa"
 
-echo "CMD6: $CMD6"
-eval $CMD6
+echo "[4/6] Merging NCBI gene2go and gene2accession..."
+perl util/ncbi_gene2go_merge.pl -a gene2go -b gene2accession > "${RESOURCES_DIR}/gene2go_and_accessions_merged.tab"
+
+echo "[5/6] Annotating nr with GO terms..."
+perl util/blast_database_to_new_description.pl \
+  -d "${RESOURCES_DIR}/nr_clean.faa" \
+  -a "${RESOURCES_DIR}/gene2go_and_accessions_merged.tab" \
+  > "${RESOURCES_DIR}/${DB_BASENAME}.faa"
+
+echo "[6/6] Building DIAMOND database..."
+diamond makedb --in "${RESOURCES_DIR}/${DB_BASENAME}.faa" -d "${RESOURCES_DIR}/${DB_BASENAME}.faa.dmnd"
+
+echo "Database build complete: ${RESOURCES_DIR}/${DB_BASENAME}.faa.dmnd"
