@@ -13,10 +13,9 @@ Zenodo record: https://zenodo.org/records/16753349
 ## key features
 
 - **High-throughput GO-term annotation**: Originally capable of annotating >100,000 protein or nucleotide sequences in FASTA format in ~15 minutes on a desktop machine (using the original smaller database).
-- **Built-in reference database**: Includes a pre-built database comprising the subset of the NCBI `nr` database with GO-terms pre-assigned.
-- **Custom database generation**: Scripts and pipelines to re-create or build new GO-annotated reference databases.
+- **Automated database setup from Zenodo**: Automatically downloads, verifies, and reconstructs the latest pre-built reference database from Zenodo, removing the need for Git LFS.
+- **Custom database generation**: Includes a pipelines to re-create or build new GO-annotated reference databases.
 - **Enrichment analysis**: Implements GO-term enrichment using a two-tailed Fisher’s exact test with Storey-Tibshirani multiple testing correction.
-
 
 ## Documentation
 
@@ -29,6 +28,8 @@ For issues, questions, comments or feature requests, please check or post to the
 ---
 
 ## Running with Docker (Recommended)
+
+Before using Docker, ensure that the required DIAMOND database has been downloaded and assembled. This happens automatically the first time you run: perl Diamond2go.pl -q your_query.pep
 
 ```bash
 docker buildx build --platform linux/amd64 -t diamond2go .
