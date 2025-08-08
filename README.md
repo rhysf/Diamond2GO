@@ -4,9 +4,13 @@
 
 ## Introduction
 
-Diamond2GO is a set of tools that can rapidly assign gene ontology and perform enrichment for functional genomics. 
+Diamond2GO is a set of tools that can rapidly assign Gene Ontology (GO) terms and perform functional enrichment for large-scale functional genomics datasets. It combines the speed of DIAMOND with curated annotation databases and optional InterProScan enrichment.
 
-The key features include:
+As of August 2025, the tool no longer relies on git-lfs to download large database files. Instead, pre-split validated files are now hosted on Zenodo and assembled locally on first use. In addition, performance options and default behaviour have been streamlined and documented to support broad usability.
+
+Zenodo record: https://zenodo.org/records/16753349
+
+## key features
 
 - **High-throughput GO-term annotation**: Originally capable of annotating >100,000 protein or nucleotide sequences in FASTA format in ~15 minutes on a desktop machine (using the original smaller database).
 - **Built-in reference database**: Includes a pre-built database comprising the subset of the NCBI `nr` database with GO-terms pre-assigned.
@@ -39,7 +43,6 @@ docker-compose run --rm diamond2go -d ./resources/nr_clean_d2go_20250728.faa.dmn
 
 If running locally outside of Docker, the following must be pre-installed:
 
-* Git Large File Storage (LFS) – [https://git-lfs.com](https://git-lfs.com)
 * Perl and BioPerl
 * CPAN module `Getopt::Std`, and others listed below
 * Diamond aligner (available in your system `$PATH`)
@@ -53,41 +56,40 @@ If using InterPro mode:
 
 ## Installation and usage
 
-``
+```bash
 git clone https://github.com/YOUR_ORG/Diamond2GO.git
 cd Diamond2GO
 perl Diamond2go.pl -q query.pep
-``
+```
 
 ## Optional parameters
 
 DIAMOND Options
 
-* -d   : DIAMOND database path [resources/nr_clean_d2go_20250728.faa.dmnd]
-* -n   : Sensitivity mode (fast, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive) [sensitive]
-* -e   : E-value cutoff [1e-10]
-* -t   : Query type (protein or dna) [protein]
-* -m   : Max target sequences per query [1]
-* -g   : Block size in GB (maps to --block-size) [Optional]
-* -k   : Index chunk count (maps to --index-chunks) [Optional]
-* -r   : Number of threads [Optional]
-* -v   : Suppress DIAMOND logs (--verbose 0) [Off by default]
+    -d   : DIAMOND database path [resources/nr_clean_d2go_20250728.faa.dmnd]
+    -n   : Sensitivity mode (fast, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive) [sensitive]
+    -e   : E-value cutoff [1e-10]
+    -t   : Query type (protein or dna) [protein]
+    -m   : Max target sequences per query [1]
+    -g   : Block size in GB (maps to --block-size) [Optional]
+    -k   : Index chunk count (maps to --index-chunks) [Optional]
+    -r   : Number of threads [Optional]
+    -v   : Suppress DIAMOND logs (--verbose 0) [Off by default]
 
 InterProScan Integration
 
-* -i   : Run InterProScan on genes with no D2GO hits (h) or all genes (a) [h]
-* -z   : Valid email address (required by InterProScan)
+    -i   : Run InterProScan on genes with no D2GO hits (h) or all genes (a) [h]
+    -z   : Valid email address (required by InterProScan)
 
 Pipeline Control
 
-* -s   : Steps to run (1 = DIAMOND, 2 = GO term summarisation, 3 = InterProScan prep, 4 = InterProScan run and merge) [12]
+    -s   : Steps to run (1 = DIAMOND, 2 = GO term summarisation, 3 = InterProScan prep, 4 = InterProScan run and merge) [12]
 
 Output Control
 
-* -a   : DIAMOND raw output file [<query>.diamond.tab]
-* -b   : Processed DIAMOND output [<query>.diamond.processed.tab]
-* -c   : Final output with InterProScan [<query>.diamond.processed_with_interpro.tab]
-
+    -a   : DIAMOND raw output file [<query>.diamond.tab]
+    -b   : Processed DIAMOND output [<query>.diamond.processed.tab]
+    -c   : Final output with InterProScan [<query>.diamond.processed_with_interpro.tab]
 
 ## Default Database Description
 
@@ -102,11 +104,9 @@ Diamond2GO now uses a modular download-and-verify system. If using the default d
 Zenodo Record:
 https://zenodo.org/records/16753349
 
-If a newer or custom database is required, the script `make_new_database.sh` contains all the steps needed to re-create or update the default database. Note that this process may take **several days** to complete due to the size of the NCBI `nr` dataset.
-
-Interrupted downloads during the setup can be safely resumed by re-running the script.
-
-For users who wish to reproduce the results from the original publication, the previous database version from **14th May 2023** is still available as part of the [v1.0.0 release]
+* If a newer or custom database is required, the script `make_new_database.sh` contains all the steps needed to re-create or update the default database. Note that this process may take **several days** to complete due to the size of the NCBI `nr` dataset.
+* Interrupted downloads during the setup can be safely resumed by re-running the script.
+* For users who wish to reproduce the results from the original publication, the previous database version from **14th May 2023** is still available as part of the [v1.0.0 release]
 
 ## Performance & Speed
 
@@ -138,23 +138,28 @@ This tool may log anonymized usage data (timestamp, IP address, user-agent) for 
 
 ## Updates
 
-* 8th August 2025. Pipeline improvements including.
+**8th August 2025**. Pipeline enhancements and performance improvements
 
 - Removed dependency on Git LFS for large database downloads.
-- New automated logic downloads split .dmnd_part_* files from Zenodo, validates each with .md5, and reconstructs the final database file.
-- Enhanced runtime options with --block-size, --index-chunks, and --threads, and better handling of sensitivity modes including fast.
-- Updated README, usage statement, removed old default database from repo, and moved to releases.
+- Introduced automated logic to download `.dmnd_part_*` files from [Zenodo](https://zenodo.org/records/16753349), validate them using `.md5`, and reconstruct the full database file.
+- Added runtime tuning options: `--block-size`, `--index-chunks`, `--threads`.
+- Better handling of DIAMOND sensitivity modes (e.g. `fast`).
+- Cleaned up usage instructions and removed bundled database from repo in favour of published releases.
 
-* 5th August 2025. Updated the default DIAMOND database to a substantially larger and more comprehensive version.  
+**5th August 2025**: Database upgrade to improve annotation quality 
 
-  - Previous database (v1.0.0, 2023-07-20): 699,409 sequences, 419M letters  
-  - New database (2025-07-28): 34,093,871 sequences, 22.9B letters  
-  - This update greatly increases the sensitivity and coverage of functional annotation, particularly for underrepresented or recently added proteins.  
-  - Users replicating the original manuscript results should use the [v1.0.0 release]
+- **Previous** (v1.0.0, 2023-07-20): 699,409 sequences, 419M letters 
+- **New** (2025-07-28): 34,093,871 sequences, 22.9B letters  
+- Greatly increases functional coverage and sensitivity, particularly for novel proteins.  
+- Users replicating the original manuscript should continue using the [v1.0.0 release].
 
-* 13th July 2025. Support for Docker included.
+**13th July 2025**: Docker support added
 
-* 8th July 2025. Uploaed a new wrapper script that attempts to run all commands to make a new d2go database file from scratch: make_new_database.sh
+- Enables easier deployment and reproducibility of the pipeline.
+
+**8th July 2025**: New helper script `make_new_database.sh`
+
+- Automates construction of a Diamond2GO-compatible database from scratch.
 
 ## Citation
 
