@@ -71,9 +71,9 @@ DIAMOND Options
     -e   : E-value cutoff [1e-10]
     -t   : Query type (protein or dna) [protein]
     -m   : Max target sequences per query [1]
-    -g   : Block size in GB (maps to --block-size) [Optional]
-    -k   : Index chunk count (maps to --index-chunks) [Optional]
-    -r   : Number of threads [Optional]
+    -g   : Block size in GB (maps to --block-size) [8]
+    -k   : Index chunk count (maps to --index-chunks) [8]
+    -r   : Number of threads [default: all available]
     -v   : Suppress DIAMOND logs (--verbose 0) [Off by default]
 
 InterProScan Integration
