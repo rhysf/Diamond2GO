@@ -1,0 +1,8 @@
+nr_clean_d2go_20250728.faa.dmnd_part_aa
+nr_clean_d2go_20250728.faa.dmnd_part_ab
+nr_clean_d2go_20250728.faa.dmnd_part_ac
+nr_clean_d2go_20250728.faa.dmnd_part_ad
+nr_clean_d2go_20250728.faa.dmnd_part_ae
+nr_clean_d2go_20250728.faa.dmnd_part_af
+nr_clean_d2go_20250728.faa.dmnd_part_ag
+nr_clean_d2go_20250728.faa.dmnd_part_ah

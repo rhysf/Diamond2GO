@@ -4,12 +4,15 @@
 
 ## Introduction
 
-Diamond2GO is a set of tools that can rapidly assign gene ontology and perform enrichment for functional genomics. The key features are:
+Diamond2GO is a set of tools that can rapidly assign gene ontology and perform enrichment for functional genomics. 
 
-- Obtain GO-terms for >100,000 protein or nucleotide sequences in FASTA format in ~15 minutes on a desktop computer.
-- Use a ready-built database comprising the subset of the NCBI nr database that have GO-terms pre-assigned to them.
-- The scripts and pipeline to re-make the database or make a new reference database.
-- A pipeline for GO-term enrichment using two-tailed Fisher’s exact test with Storey-Tibshirani multiple correction.
+The key features include:
+
+- **High-throughput GO-term annotation**: Originally capable of annotating >100,000 protein or nucleotide sequences in FASTA format in ~15 minutes on a desktop machine (using the original smaller database).
+- **Built-in reference database**: Includes a pre-built database comprising the subset of the NCBI `nr` database with GO-terms pre-assigned.
+- **Custom database generation**: Scripts and pipelines to re-create or build new GO-annotated reference databases.
+- **Enrichment analysis**: Implements GO-term enrichment using a two-tailed Fisher’s exact test with Storey-Tibshirani multiple testing correction.
+
 
 ## Documentation
 
@@ -26,9 +29,9 @@ For issues, questions, comments or feature requests, please check or post to the
 ```bash
 docker buildx build --platform linux/amd64 -t diamond2go .
 
-docker run --rm -v $(pwd):/data -w /data diamond2go -d ./resources/nr_clean_d2go.dmnd -q ./data/query.fasta -t protein
+docker run --rm -v $(pwd):/data -w /data diamond2go -d ./resources/nr_clean_d2go_20250728.faa.dmnd -q ./data/query.fasta -t protein
 
-docker-compose run --rm diamond2go -d ./resources/nr_clean_d2go.dmnd -q ./data/query.fasta -t protein
+docker-compose run --rm diamond2go -d ./resources/nr_clean_d2go_20250728.faa.dmnd -q ./data/query.fasta -t protein
 
 ```
 
@@ -38,7 +41,7 @@ If running locally outside of Docker, the following must be pre-installed:
 
 * Git Large File Storage (LFS) – [https://git-lfs.com](https://git-lfs.com)
 * Perl and BioPerl
-* CPAN modules: `Getopt::Std`, `Scalar::Util`, and others listed below
+* CPAN module `Getopt::Std`, and others listed below
 * Diamond aligner (available in your system `$PATH`)
 
 ## InterPro (optional)
@@ -48,43 +51,72 @@ If using InterPro mode:
     CPAN modules: List::AllUtils, LWP, LWP::Protocol::https, Mozilla::CA, Time::HiRes, XML::Simple
 
 
-## Getting started / examples
+## Installation and usage
 
-* Assign GO terms to protein fasta
+``
+git clone https://github.com/YOUR_ORG/Diamond2GO.git
+cd Diamond2GO
+perl Diamond2go.pl -q query.pep
+``
 
-``perl Diamond2go.pl -d nr_clean_d2go.dmnd -q query.fasta -t protein``
+## Optional parameters
 
-* Assign GO terms to gene fasta 
+DIAMOND Options
 
-``perl Diamond2go.pl -d nr_clean_d2go.dmnd -q query.fasta -t dna``
+* -d   : DIAMOND database path [resources/nr_clean_d2go_20250728.faa.dmnd]
+* -n   : Sensitivity mode (fast, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive) [sensitive]
+* -e   : E-value cutoff [1e-10]
+* -t   : Query type (protein or dna) [protein]
+* -m   : Max target sequences per query [1]
+* -g   : Block size in GB (maps to --block-size) [Optional]
+* -k   : Index chunk count (maps to --index-chunks) [Optional]
+* -r   : Number of threads [Optional]
+* -v   : Suppress DIAMOND logs (--verbose 0) [Off by default]
 
-* Adjust e-cutoff to more stringent
+InterProScan Integration
 
-``perl Diamond2go.pl -d nr_clean_d2go.dmnd -q query.fasta -e 1e-20``
+* -i   : Run InterProScan on genes with no D2GO hits (h) or all genes (a) [h]
+* -z   : Valid email address (required by InterProScan)
 
-* Adjust sensitivity
+Pipeline Control
 
-``perl Diamond2go.pl -d nr_clean_d2go.dmnd -q query.fasta -n sensitive``
+* -s   : Steps to run (1 = DIAMOND, 2 = GO term summarisation, 3 = InterProScan prep, 4 = InterProScan run and merge) [12]
 
-* Adjust to use InterPro
+Output Control
 
-``perl Diamond2go.pl -d nr_clean_d2go.dmnd -q query.fasta -s 1234 -i h -z my.email@email.com``
+* -a   : DIAMOND raw output file [<query>.diamond.tab]
+* -b   : Processed DIAMOND output [<query>.diamond.processed.tab]
+* -c   : Final output with InterProScan [<query>.diamond.processed_with_interpro.tab]
+
 
 ## Default Database Description
 
-D2GO comes with a default database that was prepared on <strong>14th May 2023</strong>. 
-If this is sufficiently dated, or a new database is required for any reason, these steps should be sufficient to recreate or update the default database. There is also a new wrapper script that attempts to run all commands: make_new_database.sh. To recreate the default reference database:
+Diamond2GO now uses a modular download-and-verify system. If using the default database (resources/nr_clean_d2go_20250728.faa.dmnd), the script will:
 
-``
-wget --continue https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz
-tr -cd '\11\12\15\40-\176' < nr.faa > nr_clean.faa
-perl ncbi_gene2go_merge.pl -a gene2go -b gene2accession > gene2go_and_accessions_merged.tab
-perl blast_database_to_new_description.pl -d nr_clean.faa -a gene2go_and_accessions_merged.tab > nr_clean_d2go.faa
-diamond makedb --in nr_clean_d2go.faa -d nr_clean_d2go.faa.dmnd
-``
+* Check for the presence of the assembled database and its .md5 file.
+* If missing, download part files from Zenodo.
+* Validate each part using MD5 checksums.
+* Concatenate into the final database.
+* Optionally validate final MD5 (disabled by default for performance).
+
+Zenodo Record:
+https://zenodo.org/records/16753349
+
+If a newer or custom database is required, the script `make_new_database.sh` contains all the steps needed to re-create or update the default database. Note that this process may take **several days** to complete due to the size of the NCBI `nr` dataset.
+
+Interrupted downloads during the setup can be safely resumed by re-running the script.
+
+For users who wish to reproduce the results from the original publication, the previous database version from **14th May 2023** is still available as part of the [v1.0.0 release]
+
+## Performance & Speed
+
+As of 8 August 2025:
+
+* Runtime: < 7 minutes on the example query peptide in /data
+* Default: --sensitive mode with --max-target-seqs 1
+* For faster runs, use -n faster, and optomise for -g (DIAMOND block size in GB), -k (Index chunk count) and -r (Threads to use)
 
 ## Utility scripts
-
 
 * blast_database_to_new_description.pl — add GO terms to FASTA headers
 
@@ -100,7 +132,33 @@ diamond makedb --in nr_clean_d2go.faa -d nr_clean_d2go.faa.dmnd
 
 * make_new_database.sh — make new D2GO database
 
+## Disclosure
+
+This tool may log anonymized usage data (timestamp, IP address, user-agent) for the purpose of improving the software, and future funding.
+
 ## Updates
 
+* 8th August 2025. Pipeline improvements including.
+
+- Removed dependency on Git LFS for large database downloads.
+- New automated logic downloads split .dmnd_part_* files from Zenodo, validates each with .md5, and reconstructs the final database file.
+- Enhanced runtime options with --block-size, --index-chunks, and --threads, and better handling of sensitivity modes including fast.
+- Updated README, usage statement, removed old default database from repo, and moved to releases.
+
+* 5th August 2025. Updated the default DIAMOND database to a substantially larger and more comprehensive version.  
+
+  - Previous database (v1.0.0, 2023-07-20): 699,409 sequences, 419M letters  
+  - New database (2025-07-28): 34,093,871 sequences, 22.9B letters  
+  - This update greatly increases the sensitivity and coverage of functional annotation, particularly for underrepresented or recently added proteins.  
+  - Users replicating the original manuscript results should use the [v1.0.0 release]
+
 * 13th July 2025. Support for Docker included.
+
 * 8th July 2025. Uploaed a new wrapper script that attempts to run all commands to make a new d2go database file from scratch: make_new_database.sh
+
+## Citation
+
+If you use this tool, please cite:
+
+* Golden C, Studholme DJ, Farrer RA. DIAMOND2GO: Rapid Gene Ontology assignment and enrichment detection for functional genomics. Front. Bioinform. 5 (2025) doi: 10.3389/fbinf.2025.1634042
+* https://www.frontiersin.org/journals/bioinformatics/articles/10.3389/fbinf.2025.1634042/abstract

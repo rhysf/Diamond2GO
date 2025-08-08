@@ -6,57 +6,88 @@ use read_FASTA;
 use Getopt::Std;
 use LWP::UserAgent;
 use Data::Dumper;
-use Scalar::Util qw(looks_like_number);
 
 ### r.farrer@exeter.ac.uk
 
 # usage
 my $usage = "perl $0 -q <query.fasta>\n
-Optional: -d\tDatabase [$Bin/resources/nr_clean_d2go.dmnd]
-          -s\tSteps (1=Diamond, 2=summarise GO terms, 3=prepare query for interproscan, 4=run interproscan and combine results) [12]
-          -e\tE-value cutoff [1e-10]
-          -n\tSensitivity (default, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive) [ultra-sensitive]
-          -t\tQuery Type (protein/dna) [protein]
-          -m\tMax target sequences [1]
-          -i\tUse interproscan (h=all genes with no d2go hits, a=all) [h]
-          -z\tValid email address required for interproscan []\n
-Outfile:  -a\tDiamond outfile [query.fasta-diamond.tab]
-          -b\tDiamond outfile parsed [query.fasta-diamond.processed.tab]
-          -c\tDiamond outfile parsed with interpro [query.fasta-diamond.processed_with_interpro.tab]
-Notes: 1) Diamond needs to be in PATH
-       2) Database needs to be made with diamond (E.g. diamond makedb --in <nr.faa> -d nr)\n";
-our($opt_a, $opt_b, $opt_c, $opt_d, $opt_e, $opt_i, $opt_m, $opt_n, $opt_q, $opt_s, $opt_t, $opt_z);
-getopt('abdeimnqstz');
+
+Main Options:
+  -q\tInput query file in FASTA format [required]
+  -d\tDIAMOND database file [$Bin/resources/nr_clean_d2go_20250728.faa.dmnd]
+  -s\tSteps to run:
+    \t1 = run DIAMOND
+    \t2 = summarise GO terms
+    \t3 = prepare InterProScan input
+    \t4 = run InterProScan and combine results [default: 12]
+
+Annotation Settings:
+  -e\tE-value cutoff [1e-10]
+  -n\tSensitivity (default, faster, fast, mid-sensitive, sensitive, more-sensitive, very-sensitive, ultra-sensitive) [fast]
+  -t\tQuery type (protein/dna) [protein]
+  -m\tMax target sequences per query [1]
+
+InterProScan Integration:
+  -i\tUse InterProScan (h = only sequences with no D2GO hit, a = all sequences) [h]
+  -z\tValid email address required for InterProScan web service []
+
+PERFORMANCE TUNING:
+  -g\tDIAMOND block size in GB (--block-size) [default: 8]
+  -k\tIndex chunk count (--index-chunks) [default: 8]
+  -r\tThreads to use (--threads) [default: all available]
+  -v\tSuppress DIAMOND log output (--verbose 0) [on]\n
+
+Output Files:
+  -a\tDIAMOND raw output file [query.fasta-diamond.tab]
+  -b\tProcessed DIAMOND results [query.fasta-diamond.processed.tab]
+  -c\tProcessed DIAMOND results with InterPro annotations [query.fasta-diamond.processed_with_interpro.tab]
+
+Notes:
+  1) DIAMOND must be installed and in your PATH
+  2) Database must be created with 'diamond makedb' (e.g., diamond makedb --in <nr.faa> -d <db>)\n";
+
+our($opt_a, $opt_b, $opt_c, $opt_d, $opt_e, $opt_g, $opt_i, $opt_k, $opt_m, $opt_n, $opt_q, $opt_r, $opt_s, $opt_t, $opt_v, $opt_z);
+getopts('a:b:c:d:e:g:i:k:m:n:q:r:s:t:vz');
 die $usage unless ($opt_q);
+my $default_db = "$Bin/resources/nr_clean_d2go_20250728.faa.dmnd";
 if(!defined $opt_a) { $opt_a = "$opt_q-diamond.tab"; }
 if(!defined $opt_b) { $opt_b = "$opt_q-diamond.processed.tab"; }
 if(!defined $opt_c) { $opt_c = "$opt_q-diamond.processed_with_interpro.tab"; }
-if(!defined $opt_d) { $opt_d = "$Bin/resources/nr_clean_d2go.dmnd"; }
+if(!defined $opt_d) { $opt_d = $default_db; }
 if(!defined $opt_i) { $opt_i = 'h'; }
 if(!defined $opt_m) { $opt_m = 1; }
-if(!defined $opt_n) { $opt_n = "ultra-sensitive"; }
+if(!defined $opt_n) { $opt_n = "fast"; }
 if(!defined $opt_s) { $opt_s = '12'; }
 if(!defined $opt_t) { $opt_t = 'protein'; }
 if(!defined $opt_e) { $opt_e = '1e-10'; }
-die "Cannot open $opt_q : $!" unless (-e $opt_q);
-die "Cannot open $opt_d : $!" unless (-e $opt_d);
-die "Error: -e not numeric : $opt_e\n" if(! looks_like_number($opt_e));
-die "Error -t not protein or dna: $opt_t\n" if($opt_t !~ m/(dna)|(protein)/);
-die "Error: -a not h or a: $opt_i\n" if($opt_i !~ m/h|a/);
+die "Error: Missing required query file (-q)\n$usage" unless $opt_q;
+die "Error: Cannot open query file: '$opt_q' ($!)" unless -e $opt_q;
+die "Error: -e not numeric or scientific notation: '$opt_e'\n" unless ($opt_e =~ /^(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/);
+die "Error: -t must be 'protein' or 'dna', got '$opt_t'\n" unless $opt_t =~ /^(dna|protein)$/;
+die "Error: -i must be 'h' or 'a', got '$opt_i'\n" unless $opt_i =~ /^[ha]$/;
+
+# DIAMOND runtime tuning
+my $block_flag  = defined $opt_g ? "--block-size $opt_g" : "--block-size 8";
+my $chunk_flag  = defined $opt_k ? "--index-chunks $opt_k" : "--index-chunks 8";
+my $thread_flag = defined $opt_r ? "--threads $opt_r" : "--threads 10";  # `nproc` or a system call could be used to detect actual CPUs
+my $verbose_flag = $opt_v ? "--verbose" : "";
 
 # program
 my $program = 'blastp';
 if($opt_t ne 'protein') { $program = 'blastx'; }
 
 # sensitivity
-my $sensitivity_flag ='';
-if(($opt_n eq 'mid-sensitive') || ($opt_n eq 'sensitive') || ($opt_n eq 'more-sensitive') || ($opt_n eq 'very-sensitive') || ($opt_n eq 'ultra-sensitive')) {
-       $sensitivity_flag = "--$opt_n";
-}
+my $sensitivity_flag = '';
+my @valid_sensitivity_modes = qw(faster fast mid-sensitive sensitive more-sensitive very-sensitive ultra-sensitive);
+if (grep { $_ eq $opt_n } @valid_sensitivity_modes) { $sensitivity_flag = "--$opt_n"; } 
+else { warn "Warning: Unrecognized sensitivity level '$opt_n'. Proceeding without a sensitivity flag.\n"; }
 
-# Check database has been downloaded or is correct
-my $first_line = `head -1 $opt_d`;
-die "Error: $opt_d not correctly specified. Looks like you need to first install Git Large File Storage (LFS) (https://git-lfs.com/) - and then re-clone\n" if($first_line =~ m/^version\ https:\/\/git-lfs/);
+# Only run database validation/downloading if using the default database
+if ($opt_d eq $default_db) {
+       &check_or_download_db($default_db);  # verifies and reassembles the split files
+} else {
+       warn "D2GO: Using custom database path: '$opt_d'. Skipping automatic integrity checks.\n";
+}
 
 # run diamond (this could be scatter gathered)
 &usage_count();
@@ -64,11 +95,8 @@ if($opt_s =~ m/1/) {
 
        warn "D2GO step 1...\n";
 
-       #my $blast_cmd = "blastp -query $opt_q -db nr -remote -out $out_blast";
-       #my $diamond_cmd = "diamond blastp -d $opt_d -q $opt_q -o $opt_a -f 6";
-
-       # Query Seq ID, Subject Seq ID, Subject Title/Desc, E-value 
-       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $opt_a $sensitivity_flag --max-target-seqs $opt_m -f 6 qseqid sseqid stitle evalue";
+       # Query Seq ID, Subject Seq ID, Subject Title/Desc, E-value
+       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $opt_a $sensitivity_flag --masking 0 --max-target-seqs $opt_m $block_flag $chunk_flag $thread_flag $verbose_flag -f 6 qseqid sseqid stitle evalue";
        warn "cmd: $diamond_cmd\n";
        my $run_blast = `$diamond_cmd`;
 }
@@ -322,6 +350,73 @@ sub save_all_diamond_hits_from_file {
        close $fh;
 
        return (\%hits);
+}
+
+sub check_or_download_db {
+       my $final_file = $_[0];
+       warn "check_or_download_db: $final_file\n";
+
+       my $final_md5_file = "$final_file.md5";
+       my $parts_list_file = "$final_file.parts.txt";  # your manifest
+       foreach($final_md5_file, $parts_list_file) {
+              die "check_or_download_db: Error: missing $_. Reclone or obtain this file from the repo : $!" if(! -e $_);
+       }
+       my $base_url = "https://zenodo.org/record/16753349/files";
+
+       # Step 1: Check full file and validate MD5
+       if (-e $final_file && -e $final_md5_file) {
+              my $md5_expected = `cut -d ' ' -f1 $final_md5_file`; chomp $md5_expected;
+              warn "check_or_download_db: Final database file exists. Skipping validation.\n";
+              warn "To manually validate: md5 -q \"$final_file\"  # expected: $md5_expected\n";
+              return;
+       } else {
+              warn "check_or_download_db: Final database file or its .md5 is missing. Will build from parts.\n";
+       }
+
+       # Step 2: Read expected part filenames from manifest
+       die "check_or_download_db: Missing parts manifest file: $parts_list_file\n" unless(-e $parts_list_file);
+       open my $fh, '<', $parts_list_file or die "Cannot open $parts_list_file: $!";
+       chomp(my @part_filenames = <$fh>);
+       close $fh;
+
+       # Step 3: Download and validate each part
+       foreach my $part_filename (@part_filenames) {
+              my $part_path = "$Bin/resources/$part_filename";
+              my $md5_path = "$part_path.md5";
+              
+              unless (-e $part_path && -e $md5_path) {
+                     warn "check_or_download_db: Downloading missing part or .md5: $part_filename...\n";
+                     system("wget --continue '$base_url/$part_filename?download=1' -O $part_path");
+                     system("wget --continue '$base_url/$part_filename.md5?download=1' -O $md5_path");
+              }
+
+              # Check MD5
+              my $md5_actual = `md5 -q $part_path`; chomp $md5_actual;
+              my $md5_expected = `cut -d ' ' -f1 $md5_path`; chomp $md5_expected;
+
+              if ($md5_actual ne $md5_expected) {
+                     warn "check_or_download_db: Part $part_filename failed MD5 check. Redownloading...\n";
+                     system("wget --continue '$base_url/$part_filename?download=1' -O $part_path");
+              } else {
+                     warn "check_or_download_db: Part $part_filename passed MD5.\n";
+              }
+       }
+
+       # Step 4: Concatenate parts into final file
+       warn "check_or_download_db: Reconstructing full database file...\n";
+       my @part_paths = map { "$Bin/resources/$_" } @part_filenames;
+       my $cat_cmd = "cat " . join(' ', @part_paths) . " > $final_file";
+       system($cat_cmd) == 0 or die "check_or_download_db: Failed to concatenate parts: $!";
+
+       # Step 5: Final full MD5 check
+       my $md5_final_actual = `md5 -q $final_file`; chomp $md5_final_actual;
+       my $md5_final_expected = `cut -d ' ' -f1 $final_md5_file`; chomp $md5_final_expected;
+
+       if($md5_final_actual ne $md5_final_expected) {
+              die "check_or_download_db: Error. Final database file failed MD5 check after reassembly. Aborting.\n" ;
+       }
+       warn "check_or_download_db: Reconstructed database file is valid.\n";
+       return;
 }
 
 sub usage_count {
