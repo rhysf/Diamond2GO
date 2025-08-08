@@ -60,7 +60,7 @@ If using InterPro mode:
 ```bash
 git clone https://github.com/YOUR_ORG/Diamond2GO.git
 cd Diamond2GO
-perl Diamond2go.pl -q query.pep
+perl Diamond2go.pl -q ./data/query.pep
 ```
 
 ## Optional parameters
