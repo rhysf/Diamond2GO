@@ -113,8 +113,12 @@ https://zenodo.org/records/16753349
 
 As of 8 August 2025:
 
-* Runtime: < 7 minutes on the example query peptide in /data
-* Default: --sensitive mode with --max-target-seqs 1
+- **Example dataset** (`/data/query.pep`): Runtime < **7 minutes**.
+- **Full-scale test** (130,184 predicted human protein isoforms):
+  - Runtime: **8 hours 39 minutes**
+  - Annotated sequences: **129,493** (>99.4% coverage)
+  - GO terms assigned: **2,458,937**
+* Default: --fast mode with --max-target-seqs 1
 * For faster runs, use -n faster, and optomise for -g (DIAMOND block size in GB), -k (Index chunk count) and -r (Threads to use)
 
 ## Utility scripts
