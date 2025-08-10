@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# File: diamond2go (place in repo root or /usr/local/bin)
-# Minimal wrapper to run the Perl core without typing "perl ..." or using .pl
+
+### r.farrer@exeter.ac.uk
 
 set -euo pipefail
 
