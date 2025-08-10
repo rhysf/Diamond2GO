@@ -29,7 +29,7 @@ For issues, questions, comments or feature requests, please check or post to the
 
 ## Running with Docker (Recommended)
 
-Before using Docker, ensure that the required DIAMOND database has been downloaded and assembled. This happens automatically the first time you run: perl Diamond2go.pl -q your_query.pep
+Before using Docker, ensure that the required DIAMOND database has been downloaded and assembled. This happens automatically the first time you run: Diamond2go
 
 ```bash
 docker buildx build --platform linux/amd64 -t diamond2go .
@@ -45,7 +45,7 @@ docker-compose run --rm diamond2go -d ./resources/nr_clean_d2go_20250728.faa.dmn
 If running locally outside of Docker, the following must be pre-installed:
 
 * Perl and BioPerl
-* CPAN module `Getopt::Std`, and others listed below
+* CPAN module `Getopt::Std`, `File::Basename`, and others listed below for Interpro (optional)
 * Diamond aligner (available in your system `$PATH`)
 
 ## InterPro (optional)
@@ -60,7 +60,7 @@ If using InterPro mode:
 ```bash
 git clone https://github.com/YOUR_ORG/Diamond2GO.git
 cd Diamond2GO
-perl Diamond2go.pl -q ./data/query.pep
+./diamond2go -q ./data/query.pep
 ```
 
 ## Optional parameters
@@ -142,6 +142,10 @@ As of 8 August 2025:
 This tool may log anonymized usage data (timestamp, IP address, user-agent) for the purpose of improving the software, and future funding.
 
 ## Updates
+
+**10th August 2025?**. Repo clean up.
+
+- Repo tidy up and entry point wrapper.
 
 **8th August 2025**. Pipeline enhancements and performance improvements
 

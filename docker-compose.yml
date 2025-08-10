@@ -10,4 +10,3 @@ services:
     volumes:
       - .:/data
     working_dir: /data
-    entrypoint: ["perl", "Diamond2go.pl"]

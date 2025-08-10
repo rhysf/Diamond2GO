@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 use strict;
 use FindBin qw($Bin);
 use lib "$Bin/modules";
@@ -6,11 +6,13 @@ use read_FASTA;
 use Getopt::Std;
 use LWP::UserAgent;
 use Data::Dumper;
+use File::Basename;
+my $script_name = basename($0);
 
 ### r.farrer@exeter.ac.uk
 
 # usage
-my $usage = "perl $0 -q <query.fasta>\n
+my $usage = "Usage: $script_name -q <query.fasta>\n
 
 Main Options:
   -q\tInput query file in FASTA format [required]
