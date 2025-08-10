@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use FindBin qw($Bin);
-use lib "$Bin/../modules";
+use lib "$Bin/modules";
 use read_Tab;
 use Getopt::Std;
 use Statistics::Multtest qw(BH qvalue);
