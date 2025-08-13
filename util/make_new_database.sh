@@ -5,7 +5,7 @@ set -euo pipefail
 # Automated script to generate a new DIAMOND2GO database with date-stamped output
 
 # === Defaults ===
-: "${RESOURCES_DIR:=../resources}" # Default to ./resources unless RESOURCES_DIR is set in environment
+: "${RESOURCES_DIR:=../resources}" # Default to ../resources unless RESOURCES_DIR is set in environment
 : "${STEPS_TO_RUN:="all"}"  # could be "all" or a comma-separated list e.g., "1,2,5"
 
 usage() {
