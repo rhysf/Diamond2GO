@@ -16,7 +16,7 @@ my $usage = "Usage: $script_name -q <query.fasta>\n
 
 Main Options:
   -q\tInput query file in FASTA format [required]
-  -d\tDIAMOND database file [$Bin/resources/nr_clean_d2go_20250728.faa.dmnd]
+  -d\tDIAMOND database file [$Bin/../resources/nr_clean_d2go_20250812_c95.faa.dmnd]
   -s\tSteps to run:
     \t1 = run DIAMOND
     \t2 = summarise GO terms
@@ -51,7 +51,7 @@ Notes:
 our($opt_a, $opt_b, $opt_c, $opt_d, $opt_e, $opt_g, $opt_i, $opt_k, $opt_m, $opt_n, $opt_q, $opt_r, $opt_s, $opt_t, $opt_v, $opt_z);
 getopts('a:b:c:d:e:g:i:k:m:n:q:r:s:t:vz');
 die $usage unless ($opt_q);
-my $default_db = "$Bin/resources/nr_clean_d2go_20250728.faa.dmnd";
+my $default_db = "$Bin/../resources/nr_clean_d2go_20250812_c95.faa.dmnd";
 if(!defined $opt_a) { $opt_a = "$opt_q-diamond.tab"; }
 if(!defined $opt_b) { $opt_b = "$opt_q-diamond.processed.tab"; }
 if(!defined $opt_c) { $opt_c = "$opt_q-diamond.processed_with_interpro.tab"; }
@@ -98,9 +98,14 @@ if($opt_s =~ m/1/) {
        warn "D2GO step 1...\n";
 
        # Query Seq ID, Subject Seq ID, Subject Title/Desc, E-value
-       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $opt_a $sensitivity_flag --masking 0 --max-target-seqs $opt_m $block_flag $chunk_flag $thread_flag $verbose_flag -f 6 qseqid sseqid stitle evalue";
+       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $opt_a $sensitivity_flag --masking 0 --max-target-seqs $opt_m $block_flag $chunk_flag $thread_flag $verbose_flag --outfmt 6 qseqid sseqid stitle evalue";
        warn "cmd: $diamond_cmd\n";
        my $run_blast = `$diamond_cmd`;
+
+       if (! -s $opt_a) {
+              die "D2GO step 1 produced no hits: '$opt_a' is empty. ".
+              "Try relaxing filters (e.g., -e 1e-5, --max-target-seqs 5, or use --sensitive).\n";
+       }
 }
 
 # summarise GO terms
@@ -282,70 +287,80 @@ sub save_all_diamond_hits_from_file {
        my ($file, $evalue_cutoff) = @_;
        warn "$0: save_diamond_hits_from_file: $file\n";
 
-       
        my %hits;
 
        open my $fh, '<', $file or die "Cannot open $file : $!";
        while(my $line=<$fh>) {
               chomp $line;
-              my @bits = split /\t/, $line;
+              next unless $line =~ /\S/; # skip entirely blank/whitespace lines
+
               # Query Seq ID, Subject Seq ID, Subject Title/Desc, E-value
+              my @bits = split /\t/, $line;
+              next unless @bits >= 4; # skip malformed rows safely
               my ($gene_id, $subject_ID, $desc, $evalue) = @bits;
 
               # e-value cutoff
-              next if($evalue > $evalue_cutoff);
+              next if $evalue > $evalue_cutoff;
 
-              # save
-              # desc e.g. 
-              # XP_016864433.1 E3 ubiquitin-protein ligase MARCHF6 isoform X8 [Homo sapiens] [[GO:0000835 (IC part_of C),
-              #GO:0004842 (IDA enables F),GO:0004842 (IMP enables F),GO:0005515 (IPI enables F),GO:0005783 (IDA located_in C),GO:0005789 
-              #(IDA located_in C),GO:0005789 (TAS located_in C),GO:0008270 (IEA enables F),GO:0010498 (IDA involved_in P),GO:0016020 (HDA located_in C),GO:0016020 (IDA located_in C),GO:0016567 (IDA involved_in P),
-              # GO:0019899 (IPI enables F),GO:0030433 (IBA involved_in P),GO:0031624 (IPI enables F),GO:0036503 (TAS involved_in P),GO:0043161 (IDA involved_in P),GO:0044322 (IEA located_in C),GO:0061630 (IDA enables F),
-              # GO:0061630 (TAS enables F),GO:0070936 (IDA involved_in P),GO:1904380 (TAS involved_in P),GO:1990381 (IPI enables F),]]
-              my @desc_parts = split /\[\[|\]\]/, $desc;
-              #my $gene_name_and_species = $desc_parts[0];
-              my $go_terms_string = $desc_parts[scalar(@desc_parts) - 1]; # end bit
+              # 1) Extract GO block: [[ ... ]]
+              my ($go_block) = $desc =~ /\[\[(.*?)\]\]/s;  # non-greedy, dotall
+              $go_block //= '';                             # if missing, keep empty
 
-              # everything before the GO terms
-              my $gene_name_and_species;
-              for(my $i=0; $i < (scalar(@desc_parts) - 1); $i++) {
-                     $gene_name_and_species .= "$desc_parts[$i] ";
-              }
+              # 2) Species = last [...] before GO block (or end)
+              my $pre_go = $desc;
+              $pre_go =~ s/\[\[(?:.*?)\]\].*$//s;           # remove GO block + trailing
+              my ($species) = $pre_go =~ /\[([^\[\]]+)\]\s*$/;   # last bracketed chunk
+              $species //= '';
 
-              $go_terms_string =~ s/\,$//;
+              # 3) Gene name = pre_go with trailing [species] removed
+              my $gene_name = $pre_go;
+              $gene_name =~ s/\s*\[[^\[\]]+\]\s*$//;        # strip that last [species]
+              $gene_name =~ s/\s+$//;
 
-              my @gene_name_and_species_parts = split /\[|\]/, $gene_name_and_species;
+              # 4) Parse GO terms (robust to extra commas/spaces)
+              $go_block =~ s/\s+/ /g;                       # normalize whitespace
+              $go_block =~ s/\s*,\s*$//;                    # trim trailing comma, if any
+              my @items = split /\s*,\s*/, $go_block;
 
-              # sometime matches multiple entries, and may have gene names with [] - and in this case, even [[ or ]], e.g., 
-              # NP_571700.1 [Pyruvate dehydrogenase [acetyl-transferring]]-phosphatase 2, mitochondrial [Danio rerio]AAI09400.1 Putative pyruvate dehydrogenase phosphatase isoenzyme 2 [Danio rerio] 
-              my $gene_name = $gene_name_and_species_parts[0];
-              my $species = $gene_name_and_species_parts[1];
+              for my $tok (@items) {
+                     next unless defined $tok && $tok =~ /\S/;   # skip empties
 
-              # individual go terms
-              my @go_terms = split /\,/, $go_terms_string;
-              GOTERMS: foreach my $go_term_and_info(@go_terms) {
-                     my @term_and_info = split /\(|\)/, $go_term_and_info;
-                     my $go_term = $term_and_info[0];
-                     $go_term =~ s/ $//;
-
-
-                     # go term info
-                     if(!defined $term_and_info[1]) {
-                            warn "so far ive got:\ngene name = $gene_name\nspecies = $species\n";
-                            die "what is up with this: $line\n$go_term_and_info\n";
+                     # Expect: GO:xxxxxxx (IEA enables F)   (or with NOT)
+                     my ($go_term, $inside) = $tok =~ /^(GO:\d+)\s*\(([^)]*)\)/;
+                     unless ($go_term && defined $inside) {
+                            # Not fatal: just skip weird token instead of dying
+                            # warn "Skipping unparsable GO token for $gene_id: '$tok'\n";
+                            next;
                      }
-                     my $info = $term_and_info[1];
-                     my @info_parts = split / /, $info;
-                     my $evidence_code = $info_parts[0];
 
-                     # not interested in these kinds of entries: (IDA NOT located_in C)
-                     next GOTERMS if($info_parts[1] eq 'NOT');
+                     $inside =~ s/^\s+|\s+$//g;
+                     my @parts = split /\s+/, $inside;
+                     next unless @parts;
 
-                     my $qualifier = $info_parts[1];
-                     my $category = $info_parts[2];
+                     my $evidence_code = shift @parts;          # e.g., IEA, IDA, IMP...
+                     my $qualifier     = '';
+                     if (@parts && $parts[0] eq 'NOT') {        # handle NOT
+                            $qualifier = shift @parts;             # 'NOT'
+                     }
+                     # Remaining should be like: enables F  OR  located_in C  OR involved_in P
+                     my $relation = shift @parts // '';
+                     my $category = shift @parts // '';         # F/C/P
 
-                     # save (gene_to_go_to_evalue_to_info)
-                     my $all_info = "$gene_id\t$gene_name\t$species\t$evalue\t$go_term\t$evidence_code\t$qualifier\t$category";
+                     # If category is missing but relation looks like F/C/P, swap
+                     if ($category !~ /^[FCP]$/ && $relation =~ /^[FCP]$/) {
+                            $category = $relation; $relation = '';
+                     }
+
+                     # Final safety: require a GO id and a category letter
+                     next unless $go_term =~ /^GO:\d+$/ && $category =~ /^[FCP]$/;
+
+                     my $all_info = join("\t",
+                            $gene_id, $gene_name, $species, $evalue,
+                            $go_term, $evidence_code, ($qualifier||$relation||''), 
+                            $category
+                     );
+
+                     # Keep best (lowest) evalue per gene_id+GO
                      $hits{$gene_id}{$go_term}{$evalue} = $all_info;
               }
        }
@@ -363,7 +378,7 @@ sub check_or_download_db {
        foreach($final_md5_file, $parts_list_file) {
               die "check_or_download_db: Error: missing $_. Reclone or obtain this file from the repo : $!" if(! -e $_);
        }
-       my $base_url = "https://zenodo.org/record/16753349/files";
+       my $base_url = "https://zenodo.org/record/16818512/files";
 
        # Step 1: Check full file and validate MD5
        if (-e $final_file && -e $final_md5_file) {
@@ -383,11 +398,12 @@ sub check_or_download_db {
 
        # Step 3: Download and validate each part
        foreach my $part_filename (@part_filenames) {
-              my $part_path = "$Bin/resources/$part_filename";
+              my $part_path = "$Bin/../resources/$part_filename";
               my $md5_path = "$part_path.md5";
               
               unless (-e $part_path && -e $md5_path) {
-                     warn "check_or_download_db: Downloading missing part or .md5: $part_filename...\n";
+                     warn "check_or_download_db: Downloading missing part and .md5: $part_filename...\n";
+                     warn "check_or_download_db: cmd: wget --continue '$base_url/$part_filename?download=1' -O $part_path\n";
                      system("wget --continue '$base_url/$part_filename?download=1' -O $part_path");
                      system("wget --continue '$base_url/$part_filename.md5?download=1' -O $md5_path");
               }

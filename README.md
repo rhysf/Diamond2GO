@@ -45,7 +45,7 @@ docker-compose run --rm diamond2go -d ./resources/nr_clean_d2go_20250728.faa.dmn
 If running locally outside of Docker, the following must be pre-installed:
 
 * Perl and BioPerl
-* CPAN module `Getopt::Std`, `File::Basename`, and others listed below for Interpro (optional)
+* CPAN modules `Getopt::Std`, `File::Basename`, and others listed below for Interpro (optional)
 * Diamond aligner (available in your system `$PATH`)
 
 ## InterPro (optional)
@@ -94,32 +94,39 @@ Output Control
 
 ## Default Database Description
 
-Diamond2GO now uses a modular download-and-verify system. If using the default database (resources/nr_clean_d2go_20250728.faa.dmnd), the script will:
+Diamond2GO now uses a modular download-and-verify workflow for its default database (resources/nr_clean_d2go_20250812_c95.faa.dmnd). When using the default database, the script will:
 
-* Check for the presence of the assembled database and its .md5 file.
+* Check for the presence of the assembled database and its .md5 checksum file.
 * If missing, download part files from Zenodo.
-* Validate each part using MD5 checksums.
-* Concatenate into the final database.
+* Validate each part using MD5 checksum.
+* Concatenate parts into the final .dmnd database file.
 * Optionally validate final MD5 (disabled by default for performance).
+* After downloading and extracting the NCBI nr dataset, redundancy is removed using MMseqs2 Linclust by default (or CD-HIT if MMseqs2 is unavailable).
+* The default clustering threshold is 95% sequence identity with 80% coverage, which reduces file size while retaining biological diversity.
+* The final database is then built with diamond makedb for high-speed protein sequence alignment.
 
 Zenodo Record:
-https://zenodo.org/records/16753349
 
-* If a newer or custom database is required, the script `make_new_database.sh` contains all the steps needed to re-create or update the default database. Note that this process may take **several days** to complete due to the size of the NCBI `nr` dataset.
-* Interrupted downloads during the setup can be safely resumed by re-running the script.
-* For users who wish to reproduce the results from the original publication, the previous database version from **14th May 2023** is still available as part of the [v1.0.0 release]
+* https://zenodo.org/records/16818512
+
+Additional notes:
+
+* If you require a new or custom database, see `util/make_new_database.sh` for the full, automated workflow.
+* Creating a new database can take multiple days due to the size of nr and the computational demands of clustering.
+* Downloads and processing can be safely resumed by re-running the script. Completed steps will be skipped unless forced with --force.
+* The previous database version from 28th July 2025 (pre-clustering, ~95% redundancy retained) is archived for reproducibility.
 
 ## Performance & Speed
 
 As of 8 August 2025:
 
-- **Example dataset** (`/data/query.pep`): Runtime < **7 minutes**.
+- **Example dataset** (`/data/query.pep`): Runtime **3 minutes and 42 seconds**.
 - **Full-scale test** (130,184 predicted human protein isoforms):
-  - Runtime: **8 hours 39 minutes**
-  - Annotated sequences: **129,493** (>99.4% coverage)
-  - GO terms assigned: **2,458,937**
+  - Runtime: **8 hours 39 minutes** (THIS WAS CALCULATED USING THE 5th AUGUST DB. THIS WILL BE UPDATED SHORTLY)
+  - Annotated sequences: **129,493** (>99.4% coverage) (THIS WAS CALCULATED USING THE 5th AUGUST DB. THIS WILL BE UPDATED SHORTLY)
+  - GO terms assigned: **2,458,937** (THIS WAS CALCULATED USING THE 5th AUGUST DB. THIS WILL BE UPDATED SHORTLY)
 * Default: --fast mode with --max-target-seqs 1
-* For faster runs, use -n faster, and optomise for -g (DIAMOND block size in GB), -k (Index chunk count) and -r (Threads to use)
+* For faster runs, try -n faster, and optomise for -g (DIAMOND block size in GB), -k (Index chunk count) and -r (Threads to use)
 
 ## Utility scripts
 
@@ -135,7 +142,7 @@ As of 8 August 2025:
 
 * test_enrichment.pl — perform GO enrichment tests
 
-* make_new_database.sh — make new D2GO database
+* make_new_database.sh — make new D2GO database (dependencies: diamond, and mmseq2 or cd-hit)
 
 ## Disclosure
 
@@ -143,11 +150,18 @@ This tool may log anonymized usage data (timestamp, IP address, user-agent) for 
 
 ## Updates
 
-**10th August 2025?**. Repo clean up.
+**12th August 2025**: New Database & Upload Script
+
+- Updated make_new_database.sh to download and process the latest nr files from NCBI.
+- New database version includes redundancy reduction using MMseqs2, substantially lowering sequence count while retaining coverage.
+- Previous (2025-07-28): 34,093,871 sequences · 22.9 B letters
+- New (2025-08-10): 27,500,577 sequences · 19.9 B letters
+
+**10th August 2025**: Repo clean up.
 
 - Repo tidy up and entry point wrapper.
 
-**8th August 2025**. Pipeline enhancements and performance improvements
+**8th August 2025**: Pipeline enhancements and performance improvements
 
 - Removed dependency on Git LFS for large database downloads.
 - Introduced automated logic to download `.dmnd_part_*` files from [Zenodo](https://zenodo.org/records/16753349), validate them using `.md5`, and reconstruct the full database file.
