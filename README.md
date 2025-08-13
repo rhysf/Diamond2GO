@@ -122,9 +122,9 @@ As of 8 August 2025:
 
 - **Example dataset** (`/data/query.pep`): Runtime **3 minutes and 42 seconds**.
 - **Full-scale test** (130,184 predicted human protein isoforms):
-  - Runtime: **8 hours 39 minutes** (THIS WAS CALCULATED USING THE 5th AUGUST DB. THIS WILL BE UPDATED SHORTLY)
-  - Annotated sequences: **129,493** (>99.4% coverage) (THIS WAS CALCULATED USING THE 5th AUGUST DB. THIS WILL BE UPDATED SHORTLY)
-  - GO terms assigned: **2,458,937** (THIS WAS CALCULATED USING THE 5th AUGUST DB. THIS WILL BE UPDATED SHORTLY)
+  - Runtime: **6 hours 53 minutes** 
+  - Annotated sequences: **129,509** (>99.4% coverage)
+  - GO terms assigned: **1.75 Million**
 * Default: --fast mode with --max-target-seqs 1
 * For faster runs, try -n faster, and optomise for -g (DIAMOND block size in GB), -k (Index chunk count) and -r (Threads to use)
 
