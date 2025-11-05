@@ -154,8 +154,8 @@ This tool may log anonymized usage data (timestamp, IP address, user-agent) for 
 
 - Updated make_new_database.sh to download and process the latest nr files from NCBI.
 - New database version includes redundancy reduction using MMseqs2, substantially lowering sequence count while retaining coverage.
-- Previous (2025-07-28): 34,093,871 sequences · 22.9 B letters
-- New (2025-08-10): 27,500,577 sequences · 19.9 B letters
+- Previous (2025-07-28): 34,093,871 sequences · 22.9 B amino acids
+- New (2025-08-10): 27,500,577 sequences · 19.9 B amino acids
 
 **10th August 2025**: Repo clean up.
 
@@ -171,8 +171,8 @@ This tool may log anonymized usage data (timestamp, IP address, user-agent) for 
 
 **5th August 2025**: Database upgrade to improve annotation quality 
 
-- **Previous** (v1.0.0, 2023-07-20): 699,409 sequences, 419M letters 
-- **New** (2025-07-28): 34,093,871 sequences, 22.9B letters  
+- **Previous** (v1.0.0, 2023-07-20): 699,409 sequences, 419M amino acids 
+- **New** (2025-07-28): 34,093,871 sequences, 22.9B amino acids
 - Greatly increases functional coverage and sensitivity, particularly for novel proteins.  
 - Users replicating the original manuscript should continue using the [v1.0.0 release].
 
