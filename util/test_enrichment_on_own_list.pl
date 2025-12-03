@@ -313,6 +313,8 @@ sub print_GO_terms_for_all_D2GO_from_own_file {
 	open my $ofh, '>', $outfile or die "Error: cannot open $outfile : $!";
 	my $gene_count = 0;
 	foreach my $gene(sort keys %{$genes_to_go_separated_by_comma}) {
+		next if($$genes_to_go_separated_by_comma{$gene} eq 'NA');
+		
 		$gene_count++;
 		my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
 		foreach my $go_term(@go_terms) {
@@ -331,6 +333,8 @@ sub print_GO_terms_for_subset_list_from_own_file {
 	my $gene_count = 0;
 	foreach my $gene(sort keys %{$genes_of_interest}) {
 		next if(!defined $$genes_to_go_separated_by_comma{$gene});
+		next if($$genes_to_go_separated_by_comma{$gene} eq 'NA');
+
 		$gene_count++;
 		my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
 		foreach my $go_term(@go_terms) {
