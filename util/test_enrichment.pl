@@ -287,6 +287,11 @@ sub save_obo_file {
 	open my $fh, '<', $file or die "Cannot open $file : $!\n";
 	while(my $line=<$fh>) {
 		chomp $line;
+		# not downloaded
+		if($line =~ m/version https:\/\/git-lfs/) {
+			die "save_obo_file: error: obo not downloaded from LFS. Either redownload, or obtain from elsewhere\n";
+		}
+
 		if ($line =~ /^id: (GO:\d+)/) {
 			$current_go = $1;
 		} elsif ($line =~ /^name: ([\S ]+)/) {

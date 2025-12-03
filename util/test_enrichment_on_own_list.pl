@@ -8,8 +8,9 @@ use Statistics::Multtest qw(BH qvalue);
 use Statistics::WilsonInterval;
 use Statistics::RightFisher;
 use Statistics::TwoFisher;
+use Data::Dumper;
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 # Opening commands
 my $usage = "Usage: perl $0 -a <gene tab GO_term1,GO_term2,etc> -b <subset.list>\n
@@ -31,10 +32,6 @@ if(!defined $opt_q) { $opt_q = "$opt_b.enrichments.parsed"; }
 if(!defined $opt_r) { $opt_r = 'n'; }
 if(!defined $opt_z) { $opt_z = 'n'; }
 foreach my $file($opt_a, $opt_b, $opt_o) { die "Error: file $file cannot be opened : $!" if(! -e $file); }
-
-# Check opt_a looks correct
-#my $opt_a_head = `head -1 $opt_a`;
-#die "Error: $opt_a does not look like d2go_out.processed. Should have #gene_id at start of header : $opt_a_head\n" if($opt_a_head !~ m/^\#gene_id/);
 
 # Save genes of interest and GO terms
 my $genes_of_interest = tabfile::save_columns_to_one_hash($opt_b, 0);
@@ -61,6 +58,8 @@ my ($go_counts2, $go_terms, $gene2go_2, $sp2_gc, $go_to_gene2) = &save_b2g_file(
 my @go_term_list = sort (keys %{$go_terms});
 my @diff_go_terms;
 foreach my $go_term(@go_term_list) {
+	
+	#warn "go_term = $go_term . has parents = $$has_parents{$go_term} count1 = $$go_counts1{$go_term} and count2 = $$go_counts2{$go_term}\n";
 	if ($$go_counts1{$go_term}) { } 
 	else { $$go_counts1{$go_term} = 0; }
 
@@ -74,6 +73,13 @@ foreach my $go_term(@go_term_list) {
 		}
 	}
 }
+
+print "go_term_list:\n";
+print Dumper(@go_term_list);
+print "\ndiff_go_terms:\n";
+print Dumper(@diff_go_terms);
+die "end here\n";
+
 
 # Calculate Statistics
 my %fisher_ps;
@@ -94,7 +100,8 @@ foreach my $go_term (@diff_go_terms) {
 	if($fisher_p < 0) {
 		$fisher_p = 0;
 	}
-    
+
+	print "$go_term -> $fisher_p\n";
 	$fisher_ps{$go_term} = $fisher_p;
 }
 
@@ -215,6 +222,8 @@ sub save_b2g_file {
 	my %gene2go_1;
 	my $sp1_gc = 0; 
 
+	warn "save_b2g_file: $file (term_col = $term_col)\n";
+
 	# Go through GO-terms file, saving counts and finding parents
 	open my $fh, '<', $file or die "Cannot open $file : $!\n";
 	while(my $line=<$fh>) {
@@ -291,6 +300,11 @@ sub save_obo_file {
 	open my $fh, '<', $file or die "Cannot open $file : $!\n";
 	while(my $line=<$fh>) {
 		chomp $line;
+		# not downloaded
+		if($line =~ m/version https:\/\/git-lfs/) {
+			die "save_obo_file: error: obo not downloaded from LFS. Either redownload, or obtain from elsewhere\n";
+		}
+
 		if ($line =~ /^id: (GO:\d+)/) {
 			$current_go = $1;
 		} elsif ($line =~ /^name: ([\S ]+)/) {
@@ -314,12 +328,17 @@ sub print_GO_terms_for_all_D2GO_from_own_file {
 	my $gene_count = 0;
 	foreach my $gene(sort keys %{$genes_to_go_separated_by_comma}) {
 		next if($$genes_to_go_separated_by_comma{$gene} eq 'NA');
+		next if($$genes_to_go_separated_by_comma{$gene} eq '');
 		
 		$gene_count++;
-		my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
-		foreach my $go_term(@go_terms) {
-			print $ofh "entry$gene_count\t$go_term\n";
-		}
+		my $go_terms_new = $$genes_to_go_separated_by_comma{$gene};
+		$go_terms_new =~ s/,/;/g;
+		print $ofh "entry$gene_count\t$go_terms_new\n";
+		
+		#my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
+		#foreach my $go_term(@go_terms) {
+		#	print $ofh "entry$gene_count\t$go_term\n";
+		#}
 	}
 	close $ofh;
 	return;
@@ -333,13 +352,18 @@ sub print_GO_terms_for_subset_list_from_own_file {
 	my $gene_count = 0;
 	foreach my $gene(sort keys %{$genes_of_interest}) {
 		next if(!defined $$genes_to_go_separated_by_comma{$gene});
+		next if($$genes_to_go_separated_by_comma{$gene} eq '');
 		next if($$genes_to_go_separated_by_comma{$gene} eq 'NA');
 
 		$gene_count++;
-		my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
-		foreach my $go_term(@go_terms) {
-			print $ofh "entry$gene_count\t$go_term\n";
-		}
+		my $go_terms_new = $$genes_to_go_separated_by_comma{$gene};
+		$go_terms_new =~ s/,/;/g;
+		print $ofh "entry$gene_count\t$go_terms_new\n";
+		
+		#my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
+		#foreach my $go_term(@go_terms) {
+		#	print $ofh "entry$gene_count\t$go_term\n";
+		#}
 	}
 	close $ofh;
 	return;

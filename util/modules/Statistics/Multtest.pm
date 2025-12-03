@@ -36,12 +36,12 @@ sub initial {
         croak "ERROR: P-values should be stored in an array reference or a hash reference.\n";
     }
     
-    my $name = [];
-    if(List::Vectorize::is_hash_ref($p)) {
-        $name = [ keys %{$p} ];
-        $p = [ values %{$p} ];
-    }
-    
+	my $name = [];
+	if(List::Vectorize::is_hash_ref($p)) {
+		$name = [ keys %{$p} ];
+		$p = [ values %{$p} ];
+	}
+
     if(max($p) > 1 or min($p) < 0) {
         croak "ERROR: P-values should between 0 and 1.\n";
     }
