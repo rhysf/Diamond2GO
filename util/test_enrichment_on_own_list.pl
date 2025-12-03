@@ -74,13 +74,6 @@ foreach my $go_term(@go_term_list) {
 	}
 }
 
-print "go_term_list:\n";
-print Dumper(@go_term_list);
-print "\ndiff_go_terms:\n";
-print Dumper(@diff_go_terms);
-die "end here\n";
-
-
 # Calculate Statistics
 my %fisher_ps;
 foreach my $go_term (@diff_go_terms) {
