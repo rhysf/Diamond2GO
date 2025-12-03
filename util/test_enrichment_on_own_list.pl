@@ -45,7 +45,7 @@ my ($go_desc, $has_parents) = &save_obo_file($opt_o);
 
 # Print GO-terms for subset.list
 my $file1_test = "$opt_b-GO";
-&print_GO_terms_for_subset_list($all_GO_terms, $genes_of_interest, $file1_test);
+&print_GO_terms_for_subset_list_from_own_file($all_GO_terms, $genes_of_interest, $file1_test);
 
 # Print GO terms for all (D2GO-out)
 my $file2_compare = "$opt_a-GO";
@@ -323,16 +323,17 @@ sub print_GO_terms_for_all_D2GO_from_own_file {
 	return;
 }
 
-sub print_GO_terms_for_subset_list {
-	my ($genes_to_go, $genes_of_interest, $outfile) = @_;
+sub print_GO_terms_for_subset_list_from_own_file {
+	my ($genes_to_go_separated_by_comma, $genes_of_interest, $outfile) = @_;
 	
 	warn "print_GO_terms_for_subset_list: $outfile\n";
 	open my $ofh, '>', $outfile or die "Error: cannot open $outfile : $!";
 	my $gene_count = 0;
 	foreach my $gene(sort keys %{$genes_of_interest}) {
-		next if(!defined $$genes_to_go{$gene});
+		next if(!defined $$genes_to_go_separated_by_comma{$gene});
 		$gene_count++;
-		foreach my $go_term(sort keys %{$$genes_to_go{$gene}}) {
+		my @go_terms = split /,/, $$genes_to_go_separated_by_comma{$gene};
+		foreach my $go_term(@go_terms) {
 			print $ofh "entry$gene_count\t$go_term\n";
 		}
 	}
