@@ -9,7 +9,7 @@ $VERSION = 0.1;
 @EXPORT_OK = qw();
 %EXPORT_TAGS = (DEFAULT => [qw()], ALL =>[qw()]);
 
-### rfarrer@broadinstitute.org
+### r.farrer@exeter.ac.uk
 
 sub save_columns_to_one_hash {
 	my $file = $_[0];
