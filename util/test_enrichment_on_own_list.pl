@@ -94,7 +94,7 @@ foreach my $go_term (@diff_go_terms) {
 		$fisher_p = 0;
 	}
 
-	print "$go_term -> $fisher_p\n";
+	#print "$go_term -> $fisher_p\n";
 	$fisher_ps{$go_term} = $fisher_p;
 }
 
