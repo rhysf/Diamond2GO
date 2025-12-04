@@ -101,7 +101,8 @@ foreach my $go_term (@diff_go_terms) {
 #print Dumper(\%fisher_ps);
 my $ps = \%fisher_ps;
 warn "Calculating q-values (takes a while)...\n";
-my $res = eval 'qvalue($ps)';
+#my $res = eval 'qvalue($ps)';
+my $res = eval { BH($ps) };
 if($@) {
     warn $@;
 }
@@ -120,11 +121,13 @@ foreach my $go_term (@diff_go_terms) {
 	# calculate and print
 	my $rel_prop = sprintf("%.2f", ($$go_counts1{$go_term} / ($$go_counts2{$go_term}+0.00001))*($sp2_gc/$sp1_gc)); # relative proportion
 	print $ofh "$go_term\t$$go_counts1{$go_term}\t$$go_counts2{$go_term}\t$fisher_ps{$go_term}\t$qs{$go_term}\t$rel_prop\t";
+	
 	#print "$npp,$np1,$n11,$n1p\t";
 	if ($qs{$go_term} < 0.05) { print $ofh "*"; }
 	print $ofh "\t$$go_desc{$go_term}";
+
 	if($opt_z eq 'y') { print $ofh "\t$genes1\t$genes2\n"; }
-	else { print "\n"; }
+	else { print $ofh "\n"; }
 }
 close $ofh;
 

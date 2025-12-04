@@ -120,7 +120,7 @@ foreach my $go_term (@diff_go_terms) {
 	if ($qs{$go_term} < 0.05) { print $ofh "*"; }
 	print $ofh "\t$$go_desc{$go_term}";
 	if($opt_z eq 'y') { print $ofh "\t$genes1\t$genes2\n"; }
-	else { print "\n"; }
+	else { print $ofh "\n"; }
 }
 close $ofh;
 
