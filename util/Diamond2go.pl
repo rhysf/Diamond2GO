@@ -7,6 +7,8 @@ use Getopt::Std;
 use LWP::UserAgent;
 use Data::Dumper;
 use File::Basename;
+use Digest::MD5 qw(md5_hex);
+use IO::File;
 my $script_name = basename($0);
 
 ### r.farrer@exeter.ac.uk
@@ -33,11 +35,11 @@ InterProScan Integration:
   -i\tUse InterProScan (h = only sequences with no D2GO hit, a = all sequences) [h]
   -z\tValid email address required for InterProScan web service []
 
-PERFORMANCE TUNING:
+Performance tuning:
   -g\tDIAMOND block size in GB (--block-size) [default: 8]
   -k\tIndex chunk count (--index-chunks) [default: 8]
-  -r\tThreads to use (--threads) [default: all available]
-  -v\tSuppress DIAMOND log output (--verbose 0) [on]\n
+  -r\tThreads to use (--threads) [10]
+  -v Verbose: print debug/progress messages to screen [off]\n
 
 Output Files:
   -a\tDIAMOND raw output file [query.fasta-diamond.tab]
@@ -72,7 +74,11 @@ die "Error: -i must be 'h' or 'a', got '$opt_i'\n" unless $opt_i =~ /^[ha]$/;
 my $block_flag  = defined $opt_g ? "--block-size $opt_g" : "--block-size 8";
 my $chunk_flag  = defined $opt_k ? "--index-chunks $opt_k" : "--index-chunks 8";
 my $thread_flag = defined $opt_r ? "--threads $opt_r" : "--threads 10";  # `nproc` or a system call could be used to detect actual CPUs
-my $verbose_flag = $opt_v ? "--verbose" : "";
+my $VERBOSE = $opt_v ? 1 : 0;
+
+# out log
+my $LOG = "$opt_q.diamond2go.log";
+open my $LOGFH, '>', $LOG or die "Cannot write log $LOG: $!";
 
 # program
 my $program = 'blastp';
@@ -95,23 +101,20 @@ if ($opt_d eq $default_db) {
 &usage_count();
 if($opt_s =~ m/1/) {
 
-       warn "D2GO step 1...\n";
+       warn "D2GO: Step 1 running DIAMOND...\n";
 
        # Query Seq ID, Subject Seq ID, Subject Title/Desc, E-value
-       my $diamond_cmd = "diamond $program -d $opt_d -q $opt_q -o $opt_a $sensitivity_flag --masking 0 --max-target-seqs $opt_m $block_flag $chunk_flag $thread_flag $verbose_flag --outfmt 6 qseqid sseqid stitle evalue";
-       warn "cmd: $diamond_cmd\n";
-       my $run_blast = `$diamond_cmd`;
+       my $diamond_cmd = "diamond $program -d '$opt_d' -q '$opt_q' -o '$opt_a' $sensitivity_flag --masking 0 --max-target-seqs $opt_m $block_flag $chunk_flag $thread_flag --outfmt 6 qseqid sseqid stitle evalue";
+       #my $run_blast = `$diamond_cmd`;
+       &process_cmd($diamond_cmd, $VERBOSE);
 
-       if (! -s $opt_a) {
-              die "D2GO step 1 produced no hits: '$opt_a' is empty. ".
-              "Try relaxing filters (e.g., -e 1e-5, --max-target-seqs 5, or use --sensitive).\n";
-       }
+       die "D2GO step 1 produced no hits: '$opt_a' is empty. Try relaxing filters (e.g., -e 1e-5, --max-target-seqs 5, or use --sensitive).\n" if (! -s $opt_a);
 }
 
 # summarise GO terms
 if($opt_s =~ m/2/) {
 
-       warn "D2GO step 2...\n";
+       warn "D2GO: Step 2 summarising GO terms...\n";
 
        # save all diamond hits
        my $gene_to_go_to_evalue_to_info = &save_all_diamond_hits_from_file($opt_a, $opt_e);
@@ -123,7 +126,7 @@ if($opt_s =~ m/2/) {
 # prepare query for interproscan
 if($opt_s =~ m/3/) {
 
-       warn "D2GO step 3...\n";
+       warn "D2GO: Step 3 preparing InterProScan input...\n";
 
        # Save sequences
        my $fasta = fastafile::fasta_to_struct($opt_q);
@@ -146,7 +149,7 @@ if($opt_s =~ m/3/) {
 # run interproscan
 if($opt_s =~ m/4/) {
 
-       warn "D2GO step 4...\n";
+       warn "D2GO: Step 4 running InterProScan...\n";
 
        # Necessary script
        my $interpro_scan = "$Bin/util/iprscan5_RF.pl";
@@ -177,11 +180,11 @@ if($opt_s =~ m/4/) {
               } else {
                      # inteproscan
                      my $CMD="perl $interpro_scan --sequence $file --stype $stype --email $opt_z --outfile $file-output --outformat tsv > $file.interpro.out 2> $file.interpro.stderr";
-                     &process_cmd($CMD);
+                     &process_cmd($CMD, $VERBOSE);
 
                      # parse
                      my $CMD2="perl $interpro_scan_parse $file-output.tsv.tsv > $file-output.tsv.tsv.parsed";
-                     &process_cmd($CMD2);
+                     &process_cmd($CMD2, $VERBOSE);
               }
        }
 
@@ -189,9 +192,9 @@ if($opt_s =~ m/4/) {
        my $iprscan_results = "$opt_q.all_iprscan_results.parsed";
        die "Error: $iprscan_results already found. Delete if you want this re-generated\n" if(-e $iprscan_results);
        my $CMD3 = "cat $opt_q-split-into-500-entries-per-file-pt-*.fasta-output.tsv.tsv.parsed >> $iprscan_results";
-       &process_cmd($CMD3);
+       &process_cmd($CMD3, $VERBOSE);
        my $CMD4="perl $interpro_scan_parse_combine $iprscan_results $opt_b > $opt_c";
-       &process_cmd($CMD4);
+       &process_cmd($CMD4, $VERBOSE);
 
        warn "Finished\n";
 }
@@ -218,9 +221,9 @@ sub save_d2go_genes_with_no_hits {
               }
        }
 
-       warn "save_d2go_genes_with_no_hits: Genes: $total_genes\n";
-       warn "save_d2go_genes_with_no_hits: Genes with GO terms: $genes_with_go_terms\n";
-       warn "save_d2go_genes_with_no_hits: Genes with no GO terms: $nothing_found_in_diamond2go\n";
+       info("save_d2go_genes_with_no_hits: Genes: $total_genes\n");
+       info("save_d2go_genes_with_no_hits: Genes with GO terms: $genes_with_go_terms\n");
+       info("save_d2go_genes_with_no_hits: Genes with no GO terms: $nothing_found_in_diamond2go\n");
        return \%genes_no_hits;
 }
 
@@ -228,7 +231,7 @@ sub save_d2go_genes_with_no_hits {
 #gene_id      gene_name     species       e-value       GO-term       evidence_code qualifier     category
 sub save_d2go {
        my $file = $_[0];
-       warn "save_d2go  : $file\n";
+       info("save_d2go  : $file\n");
        my %gene_to_GO_terms;
        my $go_count = 0;
        open my $fh, '<', $file or die "Error: Cannot open $file : $!";
@@ -254,7 +257,7 @@ sub save_d2go {
               $go_count++;
        }
        my $genes_count = scalar(keys(%gene_to_GO_terms));
-       warn "save_d2go : $genes_count total genes with $go_count total go terms\n";
+       info("save_d2go : $genes_count total genes with $go_count total go terms\n");
        return \%gene_to_GO_terms;
 }
 
@@ -285,7 +288,7 @@ sub print_non_redundant_and_best_scoring_go_terms {
 
 sub save_all_diamond_hits_from_file {
        my ($file, $evalue_cutoff) = @_;
-       warn "$0: save_diamond_hits_from_file: $file\n";
+       info("$0: save_diamond_hits_from_file: $file\n");
 
        my %hits;
 
@@ -382,76 +385,148 @@ sub check_or_download_db {
 
        # Step 1: Check full file and validate MD5
        if (-e $final_file && -e $final_md5_file) {
-              my $md5_expected = `cut -d ' ' -f1 $final_md5_file`; chomp $md5_expected;
-              warn "check_or_download_db: Final database file exists. Skipping validation.\n";
-              warn "To manually validate: md5 -q \"$final_file\"  # expected: $md5_expected\n";
-              return;
-       } else {
-              warn "check_or_download_db: Final database file or its .md5 is missing. Will build from parts.\n";
-       }
-
-       # Step 2: Read expected part filenames from manifest
-       die "check_or_download_db: Missing parts manifest file: $parts_list_file\n" unless(-e $parts_list_file);
-       open my $fh, '<', $parts_list_file or die "Cannot open $parts_list_file: $!";
-       chomp(my @part_filenames = <$fh>);
-       close $fh;
-
-       # Step 3: Download and validate each part
-       foreach my $part_filename (@part_filenames) {
-              my $part_path = "$Bin/../resources/$part_filename";
-              my $md5_path = "$part_path.md5";
-              
-              unless (-e $part_path && -e $md5_path) {
-                     warn "check_or_download_db: Downloading missing part and .md5: $part_filename...\n";
-                     warn "check_or_download_db: cmd: wget --continue '$base_url/$part_filename?download=1' -O $part_path\n";
-                     system("wget --continue '$base_url/$part_filename?download=1' -O $part_path");
-                     system("wget --continue '$base_url/$part_filename.md5?download=1' -O $md5_path");
-              }
-
-              # Check MD5
-              my $md5_actual = `md5 -q $part_path`; chomp $md5_actual;
-              my $md5_expected = `cut -d ' ' -f1 $md5_path`; chomp $md5_expected;
-
-              if ($md5_actual ne $md5_expected) {
-                     warn "check_or_download_db: Part $part_filename failed MD5 check. Redownloading...\n";
-                     system("wget --continue '$base_url/$part_filename?download=1' -O $part_path");
+              my $md5_expected = read_md5_file_first_token($final_md5_file);
+              if (!$md5_expected) {
+                     warn "check_or_download_db: Could not parse expected MD5 from $final_md5_file. Will rebuild from parts.\n";
               } else {
-                     warn "check_or_download_db: Part $part_filename passed MD5.\n";
+                     my $md5_actual = md5_hex_file($final_file);
+
+                     if (lc($md5_actual) eq lc($md5_expected)) {
+                            warn "check_or_download_db: Final database file exists and passed MD5. Skipping rebuild.\n";
+                            return;
+                     } else {
+                            warn "check_or_download_db: Final database file exists but failed MD5. Will rebuild from parts.\n";
+                            warn "check_or_download_db: expected=$md5_expected actual=$md5_actual\n";
+                            # fall through to rebuild
+                     }
               }
+	} else {
+		warn "check_or_download_db: Final database file or its .md5 is missing. Will build from parts.\n";
+	}
+
+	# Step 2: Read expected part filenames from manifest
+	die "check_or_download_db: Missing parts manifest file: $parts_list_file\n" unless(-e $parts_list_file);
+	open my $fh, '<', $parts_list_file or die "Cannot open $parts_list_file: $!";
+	chomp(my @part_filenames = <$fh>);
+	close $fh;
+
+	# Step 3: Download and validate each part
+	foreach my $part_filename (@part_filenames) {
+		my $part_path = "$Bin/../resources/$part_filename";
+		my $md5_path = "$part_path.md5";
+              
+		unless (-e $part_path && -e $md5_path) {
+			warn "check_or_download_db: Downloading missing part and .md5: $part_filename...\n";
+			warn "check_or_download_db: cmd: wget --continue '$base_url/$part_filename?download=1' -O $part_path\n";
+			system("wget --continue '$base_url/$part_filename?download=1' -O '$part_path'");
+			system("wget --continue '$base_url/$part_filename.md5?download=1' -O '$md5_path'");
+		}
+
+		# Check MD5 (portable: no shell commands)
+              my $md5_actual   = md5_hex_file($part_path);
+              my $md5_expected = read_md5_file_first_token($md5_path);
+
+		if (!$md5_expected || lc($md5_actual) ne lc($md5_expected)) {
+			warn "check_or_download_db: Part $part_filename failed MD5 check. Redownloading...\n";
+			system("wget --continue '$base_url/$part_filename?download=1' -O '$part_path'");
+		} else {
+			warn "check_or_download_db: Part $part_filename passed MD5.\n";
+		}
+	}
+
+	# Step 4: Concatenate parts into final file
+	warn "check_or_download_db: Reconstructing full database file...\n";
+	my @part_paths = map { "$Bin/../resources/$_" } @part_filenames;
+	#my $cat_cmd = "cat " . join(' ', @part_paths) . " > $final_file";
+	#system($cat_cmd) == 0 or die "check_or_download_db: Failed to concatenate parts: $!";
+       open(my $out, '>:raw', $final_file) or die "Cannot write $final_file: $!";
+       for my $p (@part_paths) {
+           open(my $in, '<:raw', $p) or die "Cannot read $p: $!";
+           my $buf;
+           while (read($in, $buf, 1024*1024)) {
+               print $out $buf;
+           }
+           close $in;
        }
+       close $out;
 
-       # Step 4: Concatenate parts into final file
-       warn "check_or_download_db: Reconstructing full database file...\n";
-       my @part_paths = map { "$Bin/resources/$_" } @part_filenames;
-       my $cat_cmd = "cat " . join(' ', @part_paths) . " > $final_file";
-       system($cat_cmd) == 0 or die "check_or_download_db: Failed to concatenate parts: $!";
+	# Step 5: Final full MD5 check
+       my $md5_final_actual   = md5_hex_file($final_file);
+       my $md5_final_expected = read_md5_file_first_token($final_md5_file);
 
-       # Step 5: Final full MD5 check
-       my $md5_final_actual = `md5 -q $final_file`; chomp $md5_final_actual;
-       my $md5_final_expected = `cut -d ' ' -f1 $final_md5_file`; chomp $md5_final_expected;
+	if (!$md5_final_expected || lc($md5_final_actual) ne lc($md5_final_expected)) {
+		die "check_or_download_db: Error. Final database file failed MD5 check after reassembly. Aborting.\n" ;
+	}
+	warn "check_or_download_db: Reconstructed database file is valid.\n";
+	return;
+}
 
-       if($md5_final_actual ne $md5_final_expected) {
-              die "check_or_download_db: Error. Final database file failed MD5 check after reassembly. Aborting.\n" ;
-       }
-       warn "check_or_download_db: Reconstructed database file is valid.\n";
-       return;
+sub md5_hex_file {
+    my ($path) = @_;
+    my $fh = IO::File->new($path, "r") or die "Can't open $path: $!";
+    binmode($fh);
+    my $ctx = Digest::MD5->new;
+    $ctx->addfile($fh);
+    return $ctx->hexdigest;
+}
+
+sub read_md5_file_first_token {
+    my ($md5_path) = @_;
+    open(my $mfh, "<", $md5_path) or die "Can't open $md5_path: $!";
+    my $line = <$mfh>;
+    close $mfh;
+
+    return undef unless defined $line;
+    $line =~ s/^\s+|\s+$//g;
+    my ($tok) = split(/\s+/, $line);
+    return $tok;
 }
 
 sub usage_count {
 	my $url  = "https://rhysfarrer.com/code_track/log.php";
-	if (command_exists("curl")) {
-		system("curl -s \"$url\" > /dev/null");
-	} elsif (command_exists("wget")) {
-		system("wget -q \"$url\" -O /dev/null");
-	} else { }
+
+       my $cmd;
+       if (command_exists("curl")) {
+              $cmd = "curl -fsS --max-time 3 '$url'";
+       } elsif (command_exists("wget")) {
+              $cmd = "wget -q -T 3 -O - '$url'";
+       } else {
+              return;
+       }
+
+       my $ok = eval {
+              local $SIG{ALRM} = sub { die "timeout\n" };
+              alarm 4;  # hard cap
+              system("$cmd > /dev/null 2>&1");
+              alarm 0;
+              1;
+       };
+
+       if (!$ok) {
+              # silent to screen, but recorded in log
+              print $LOGFH "usage_count: failed ($@)\n";
+              return;
+       }
+
+       # also log non-zero exit codes quietly
+       if ($? != 0) {
+              print $LOGFH "usage_count: command failed with exit code " . ($? >> 8) . "\n";
+       }
 }
 
 sub process_cmd {
-       my ($cmd) = @_;
-       warn "CMD: $cmd\n";
-       my $ret = system($cmd);
-       die "Error, cmd $cmd died with return $ret\n" if($ret);
-       return 1;
+    my ($cmd, $verbose) = @_;
+    info("CMD: $cmd");
+
+    if ($verbose) {
+        my $ret = system($cmd);
+        diex("Error, cmd failed ($ret): $cmd") if $ret;
+    } else {
+        my $wrapped = "$cmd >> $LOG 2>&1";
+        my $ret = system($wrapped);
+        diex("Error, cmd failed ($ret): $cmd (see $LOG)") if $ret;
+    }
+    return 1;
 }
 
 # Function to check if a command exists
@@ -459,3 +534,7 @@ sub command_exists {
     my ($cmd) = @_;
     return system("command -v $cmd > /dev/null 2>&1") == 0;
 }
+
+sub info  { my ($m)=@_; print STDERR "$m\n" if $VERBOSE; print $LOGFH "$m\n"; }
+sub warnx { my ($m)=@_; warn "$m\n";       print $LOGFH "WARN: $m\n"; }
+sub diex  { my ($m)=@_; print $LOGFH "FATAL: $m\n"; die "$m\n"; }
