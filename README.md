@@ -46,7 +46,7 @@ If running locally outside of Docker, the following must be pre-installed:
 
 * Perl and BioPerl
 * CPAN modules `Getopt::Std`, `File::Basename`, and others listed below for Interpro (optional)
-* Diamond aligner (available in your system `$PATH`)
+* Diamond aligner (available in your system `$PATH`) v2.0.10 or later
 
 ## InterPro (optional)
 
